@@ -1,0 +1,1 @@
+{"version":3,"file":"localSession.d.ts","sourceRoot":"","sources":["../../../src/generated/types/localSession.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,aAAa,CAAC;AAE7C,MAAM,WAAW,YAAY;IAC3B,IAAI,EAAE,SAAS,GAAG,IAAI,CAAC;IACvB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,aAAa,CAAC,EAAE,OAAO,CAAC;CACzB"}

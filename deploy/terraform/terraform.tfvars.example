@@ -1,0 +1,18 @@
+subscription_id              = "00000000-0000-0000-0000-000000000000"
+tenant_id                    = "00000000-0000-0000-0000-000000000000"
+location                     = "westeurope"
+resource_group_name          = "existing-client-apps"
+prefix                       = "client-clean-core"
+postgres_admin               = "platformadmin"
+postgres_subnet_id           = "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.Network/virtualNetworks/REPLACE/subnets/postgres"
+postgres_private_dns_zone_id = "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.Network/privateDnsZones/client.postgres.database.azure.com"
+private_endpoint_subnet_id   = "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.Network/virtualNetworks/REPLACE/subnets/endpoints"
+blob_private_dns_zone_id     = "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"
+vault_private_dns_zone_id    = "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.Network/privateDnsZones/privatelink.vaultcore.azure.net"
+cluster_oidc_issuer          = "https://REPLACE-existing-cluster-issuer/"
+namespace                   = "clean-core"
+service_account             = "client-clean-core"
+storage_account_name        = "replacegloballyunique"
+vault_name                  = "replace-unique-vault"
+# postgres_password: supply through a protected TF_VAR_postgres_password,
+# not this file. It WILL be present in Terraform state.

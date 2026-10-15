@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cc.name" . }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  {{- if eq .Values.config.CC_KNOWLEDGE_STORAGE "local" }}
+  strategy: { type: Recreate }
+  {{- end }}
+  selector:
+    matchLabels: { app: {{ include "cc.name" . }} }
+  template:
+    metadata:
+      labels:
+        app: {{ include "cc.name" . }}
+        {{- with .Values.podLabels }}{{ toYaml . | nindent 8 }}{{ end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}{{ toYaml . | nindent 8 }}{{ end }}
+    spec:
+      serviceAccountName: {{ include "cc.sa" . }}
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          ports: [{ name: http, containerPort: 8080 }]
+          {{- if not .Values.runtimeEnvFile.enabled }}
+          envFrom:
+            - configMapRef: { name: {{ include "cc.name" . }} }
+            - secretRef: { name: {{ include "cc.secret" . }} }
+          {{- end }}
+          env:
+            {{- if .Values.runtimeEnvFile.enabled }}
+            - { name: CC_RUNTIME_ENV_FILE, value: /etc/clean-core/.env }
+            {{- end }}
+            - name: CC_REPLICA_COUNT
+              value: {{ ternary .Values.autoscaling.maxReplicas .Values.replicaCount .Values.autoscaling.enabled | quote }}
+            {{- include "cc.dbEnv" . | nindent 12 }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            timeoutSeconds: 6
+            periodSeconds: 10
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            {{- if .Values.runtimeEnvFile.enabled }}
+            - { name: runtime-env, mountPath: /etc/clean-core, readOnly: true }
+            {{- end }}
+            {{- if .Values.localStorage.enabled }}
+            - { name: documents, mountPath: /data }
+            {{- end }}
+            {{- if .Values.databaseCA.configMap }}
+            - { name: db-ca, mountPath: /etc/db-ca, readOnly: true }
+            {{- end }}
+      volumes:
+        {{- if .Values.runtimeEnvFile.enabled }}
+        - name: runtime-env
+          secret:
+            secretName: {{ required "runtimeEnvFile.existingSecret required" .Values.runtimeEnvFile.existingSecret }}
+            defaultMode: 0440
+            items: [{ key: {{ .Values.runtimeEnvFile.key | quote }}, path: .env }]
+        {{- end }}
+        - name: tmp
+          emptyDir: { sizeLimit: 256Mi }
+        {{- if .Values.localStorage.enabled }}
+        - name: documents
+          persistentVolumeClaim:
+            claimName: {{ default (include "cc.name" .) .Values.localStorage.existingClaim }}
+        {{- end }}
+        {{- if .Values.databaseCA.configMap }}
+        - name: db-ca
+          configMap:
+            name: {{ .Values.databaseCA.configMap }}
+            items: [{ key: {{ .Values.databaseCA.key }}, path: ca.pem }]
+        {{- end }}

@@ -1,0 +1,87 @@
+image:
+  repository: registry.example.com/clean-core
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+replicaCount: 1
+existingSecret: clean-core-runtime
+databaseSecretKey: DATABASE_URL
+# When enabled, replaces app envFrom and DATABASE_URL injection with a Secret file.
+# config values remain deployment metadata for scaling/storage validation; keep in sync.
+runtimeEnvFile:
+  enabled: false
+  existingSecret: clean-core-runtime-file
+  key: .env
+# Inline secrets are optional; prefer client-managed existingSecret.
+secret:
+  create: false
+  data: {}
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+podAnnotations: {}
+podLabels: {}
+config:
+  NODE_ENV: production
+  PORT: "8080"
+  CC_STATIC_DIR: /app/public
+  CC_SCHEMA_BOOTSTRAP: "false"
+  CC_AI_ENABLED: "false"
+  CC_AI_LIMITER: local
+  CC_DB_POOL_MAX: "10"
+  CC_KNOWLEDGE_STORAGE: azure
+  PRIVATE_OBJECT_DIR: /documents/private
+  CC_AZURE_STORAGE_URL: https://replaceaccount.blob.core.windows.net
+  CC_AZURE_STORAGE_CONTAINER: documents
+databaseCA:
+  configMap: ""
+  key: ca.pem
+service:
+  port: 80
+ingress:
+  enabled: false
+  className: nginx
+  host: clean-core.example.com
+  annotations: {}
+  tls: []
+resources:
+  requests: { cpu: 250m, memory: 512Mi }
+  limits: { cpu: "2", memory: 2Gi }
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 0
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities: { drop: [ALL] }
+  seccompProfile: { type: RuntimeDefault }
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+pdb:
+  enabled: false
+  minAvailable: 1
+localStorage:
+  enabled: false
+  existingClaim: ""
+  size: 10Gi
+  storageClass: ""
+migration:
+  enabled: false
+  runtimeEnvFile:
+    enabled: false
+    existingSecret: clean-core-migration-file
+    key: .env
+  existingSecret: clean-core-migration
+  databaseSecretKey: DATABASE_URL
+  serviceAccountName: ""
+  activeDeadlineSeconds: 180
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []

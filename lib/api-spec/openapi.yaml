@@ -1,0 +1,927 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+paths:
+  /clean-core/knowledge/cleanup:
+    get:
+      operationId: getKnowledgeCleanup
+      responses:
+        "200":
+          description: Latest automatic or manual cleanup report (administrators only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeCleanupStatus"
+    post:
+      operationId: runKnowledgeCleanup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KnowledgeCleanupInput"
+      responses:
+        "200":
+          description: Bounded cleanup result (administrators only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeCleanupReport"
+  /report-templates:
+    get:
+      operationId: listReportTemplates
+      responses:
+        "200":
+          description: Account-owned templates and active selection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [templates, activeId, configured]
+                properties:
+                  configured: { type: boolean }
+                  activeId: { type: [string, "null"] }
+                  templates:
+                    type: array
+                    items: { $ref: "#/components/schemas/WordTemplate" }
+  /report-templates/reference:
+    get:
+      operationId: wordTemplateReference
+      responses:
+        "200":
+          description: Placeholder reference and supported layout limitations
+  /report-templates/sample:
+    get:
+      operationId: downloadWordTemplateSample
+      responses:
+        "200":
+          description: Explicit built-in DOCX template
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /report-templates/uploads:
+    post:
+      operationId: startWordTemplateUpload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordUploadInput"
+      responses:
+        "200":
+          description: Private direct upload ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, uploadUrl]
+                properties:
+                  id: { type: string }
+                  uploadUrl: { type: string }
+  /report-templates/uploads/{id}/process:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: validateWordTemplateUpload
+      responses:
+        "200":
+          description: Validated private template, not activated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WordTemplate" }
+  /report-templates/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateWordTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordUpdateInput"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WordTemplate" }
+    delete:
+      operationId: deleteWordTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordDeleteInput"
+      responses:
+        "204": { description: Template deleted }
+  /report-templates/preview:
+    post:
+      operationId: previewWordTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordPreviewInput"
+      responses:
+        "200":
+          description: Populated fictional example DOCX; export authorization required
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /report-templates/render:
+    post:
+      operationId: renderWordReports
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordRenderInput"
+      responses:
+        "200":
+          description: One DOCX or complete ZIP, never partial
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /clean-core/knowledge:
+    get:
+      operationId: listKnowledge
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+      responses:
+        "200":
+          description: Shared authenticated library
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeList"
+  /clean-core/knowledge/uploads:
+    post:
+      operationId: startKnowledgeUpload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/KnowledgeUpload" }
+      responses:
+        "200":
+          description: Private temporary write authorization
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KnowledgeUploadTicket" }
+  /clean-core/knowledge/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getKnowledgeDocument
+      responses:
+        "200":
+          description: Document with plain text passages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KnowledgeDetail" }
+    delete:
+      operationId: removeKnowledgeDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/KnowledgeVersion" }
+      responses:
+        "204": { description: Removed from future retrieval }
+  /clean-core/knowledge/{id}/process:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: processKnowledgeUpload
+      responses:
+        "200":
+          description: Processed document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KnowledgeDocument" }
+  /clean-core/knowledge/{id}/file/{version}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: downloadKnowledgeFile
+      responses:
+        "200":
+          description: Authenticated current-version download only
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /clean-core/ai/preview:
+    post:
+      operationId: previewAssessmentExplanation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/KnowledgeAiRequest" }
+      responses:
+        "200":
+          description: Exact bounded provider payload; no external AI call
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KnowledgePreview" }
+  /admin/audit:
+    get:
+      operationId: listAccountAudit
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+        - { name: action, in: query, schema: { $ref: "#/components/schemas/AccountAuditAction" } }
+        - { name: from, in: query, description: Inclusive UTC date, schema: { type: string, format: date } }
+        - { name: to, in: query, description: Inclusive UTC date, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: Read-only account audit, newest first, 25 entries per page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountAuditPage" }
+        "400": { description: Invalid filters }
+        "401": { description: Sign-in required }
+        "403": { description: Admin role and completed password change required }
+        "503": { description: Audit storage unavailable }
+  /auth/me:
+    get:
+      operationId: getLocalSession
+      responses:
+        "200":
+          description: Current user or anonymous session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalSession" }
+  /auth/login:
+    post:
+      operationId: loginLocalUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginInput" }
+      responses:
+        "200":
+          description: Authenticated session cookie and CSRF token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalSession" }
+  /auth/logout:
+    post:
+      operationId: logoutLocalUser
+      responses:
+        "200": { description: Session revoked }
+  /auth/password:
+    post:
+      operationId: changeLocalPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordChangeInput" }
+      responses:
+        "200": { description: Password changed and all sessions revoked }
+  /auth/authorize:
+    post:
+      operationId: authorizeLocalAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PermissionCheckInput" }
+      responses:
+        "200": { description: Current permission granted }
+        "403": { description: Permission denied }
+  /admin/users:
+    get:
+      operationId: listLocalUsers
+      responses:
+        "200":
+          description: Admin-only user list and available permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users, permissions, roles]
+                properties:
+                  users: { type: array, items: { $ref: "#/components/schemas/LocalUser" } }
+                  permissions: { type: array, items: { type: string } }
+                  roles: { type: array, items: { type: string } }
+    post:
+      operationId: createLocalUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreationInput" }
+      responses:
+        "201":
+          description: Created user with mandatory password change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalUserEnvelope" }
+  /admin/users/{id}:
+    patch:
+      operationId: updateLocalUser
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdateInput" }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalUserEnvelope" }
+  /admin/users/{id}/reset-password:
+    post:
+      operationId: resetLocalUserPassword
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordResetInput" }
+      responses:
+        "200": { description: Temporary password set and sessions revoked }
+  /clean-core/review-demo:
+    get:
+      operationId: reviewCleanCoreDemo
+      responses:
+        "200":
+          description: Read-only demonstration for users with view permission
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoResult" }
+  /clean-core/ai/limiter-health:
+    get:
+      operationId: getAiLimiterHealth
+      description: Gateway-authorized non-consuming limiter readiness and process-local metrics. Never calls the AI provider.
+      responses:
+        "200":
+          description: Limiter probe succeeded (cached at most five seconds)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiLimiterHealth" }
+        "401":
+          description: Missing or invalid gateway assertion
+        "503":
+          description: Limiter unavailable, or AI disabled or not configured
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/AiLimiterHealth"
+                  - type: object
+                    required: [message]
+                    properties:
+                      message: { type: string }
+  /clean-core/ai/status:
+    get:
+      operationId: getAssessmentAiStatus
+      responses:
+        "200":
+          description: Safe configuration status, never credentials or endpoint
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentAiStatus" }
+  /clean-core/ai/explain:
+    post:
+      operationId: explainAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/KnowledgeAiConsent" }
+      responses:
+        "200":
+          description: Unaccepted AI draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentExplanation" }
+        "400": { description: Invalid summary }
+        "403": { description: Verified gateway identity required }
+        "429": { description: Rate or concurrency limit }
+        "503": { description: "Disabled, unconfigured or unavailable" }
+  /clean-core/demo:
+    post:
+      operationId: loadCleanCoreDemo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentContext"
+      responses:
+        "200":
+          description: Original demo evidence and assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoResult"
+  /clean-core/assessment:
+    post:
+      operationId: runCleanCoreAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentInput"
+      responses:
+        "200":
+          description: Original Clean Core engine output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResult"
+  /clean-core/evidence:
+    post:
+      operationId: uploadCleanCoreEvidence
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/EvidenceUpload"
+      responses:
+        "200":
+          description: Validated normalized evidence with integrity attestation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceRecord"
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+components:
+  schemas:
+    KnowledgeCleanupInput:
+      type: object
+      required: [dryRun]
+      properties:
+        dryRun: { type: boolean }
+    KnowledgeCleanupStatus:
+      type: object
+      required: [report]
+      properties:
+        report:
+          oneOf:
+            - $ref: "#/components/schemas/KnowledgeCleanupReport"
+            - { type: "null" }
+    KnowledgeCleanupReport:
+      type: object
+      required: [dryRun, startedAt, expiredUploads, scanned, candidates, deleted, protected, failures, hasMore]
+      properties:
+        dryRun: { type: boolean }
+        startedAt: { type: string }
+        expiredUploads: { type: integer }
+        scanned: { type: integer }
+        candidates: { type: integer }
+        deleted: { type: integer }
+        protected: { type: integer }
+        failures: { type: integer }
+        hasMore: { type: boolean }
+    WordUploadInput:
+      type: object
+      required: [name, filename]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        filename: { type: string, pattern: '\.docx$' }
+        replaceId: { type: string, format: uuid }
+        expectedVersion: { type: integer, minimum: 1 }
+    WordUpdateInput:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 100 }
+        active: { type: boolean, enum: [true] }
+    WordDeleteInput:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+    WordPreviewInput:
+      type: object
+      required: [templateId]
+      properties:
+        templateId: { type: string }
+        expectedVersion: { type: integer, minimum: 1 }
+    WordRenderInput:
+      type: object
+      required: [templateId, entities]
+      properties:
+        templateId: { type: string }
+        entities:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: "#/components/schemas/WordReportEntity" }
+    WordTemplate:
+      type: object
+      required: [id, name, version, active, previewed]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        version: { type: integer }
+        active: { type: boolean }
+        previewed: { type: boolean }
+    WordReportEntity:
+      type: object
+      required: [entity_id, entity_kind]
+      properties:
+        entity_id: { type: string, minLength: 1, maxLength: 2000 }
+        entity_kind: { type: string, enum: [object, interface] }
+        entity_name: { type: string }
+        entity_type: { type: string }
+        package: { type: string }
+        owner: { type: string }
+        source_system: { type: string }
+        target_system: { type: string }
+        target_release: { type: string }
+        classification: { type: string }
+        severity: { type: string }
+        rationale: { type: string }
+        mitigation: { type: string }
+        evidence: { type: string }
+        notes: { type: string }
+        ai_explanations: { type: string }
+        findings:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            required: [text, severity]
+            properties:
+              text: { type: string }
+              severity: { type: string }
+        recommendations:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            required: [text]
+            properties:
+              text: { type: string }
+    KnowledgeVersion:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+    KnowledgeUpload:
+      type: object
+      required: [title, release, topics, filename, size]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        release: { type: string, minLength: 1, maxLength: 50 }
+        topics: { type: array, maxItems: 8, items: { type: string, minLength: 1, maxLength: 40 } }
+        filename: { type: string, minLength: 1, maxLength: 200 }
+        size: { type: integer, minimum: 1, maximum: 8388608 }
+        replaceId: { type: string, format: uuid }
+        expectedVersion: { type: integer, minimum: 1 }
+    KnowledgeUploadTicket:
+      type: object
+      required: [id, uploadUrl]
+      properties:
+        id: { type: string }
+        uploadUrl: { type: string }
+    KnowledgeDocument:
+      type: object
+      required: [id, ownerId, title, release, topics, filename, version, status, error, createdAt]
+      properties:
+        id: { type: string }
+        ownerId: { type: string }
+        title: { type: string }
+        release: { type: string }
+        topics: { type: array, items: { type: string } }
+        filename: { type: string }
+        version: { type: integer }
+        status: { type: string, enum: [awaiting-upload, processing, ready, failed] }
+        error: { type: string, nullable: true }
+        createdAt: { type: string }
+    KnowledgePassage:
+      type: object
+      required: [section, text]
+      properties:
+        section: { type: string, maxLength: 160 }
+        text: { type: string, maxLength: 1400 }
+    KnowledgeDetail:
+      allOf:
+        - { $ref: "#/components/schemas/KnowledgeDocument" }
+        - type: object
+          required: [canManage, passages]
+          properties:
+            canManage: { type: boolean }
+            passages: { type: array, items: { $ref: "#/components/schemas/KnowledgePassage" } }
+    KnowledgeList:
+      type: object
+      required: [documents, configured, message]
+      properties:
+        documents: { type: array, items: { $ref: "#/components/schemas/KnowledgeDocument" } }
+        configured: { type: boolean }
+        message: { type: string }
+    KnowledgeSource:
+      type: object
+      required: [id, title, version, section, release, applicability]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, maxLength: 200 }
+        version: { type: integer, minimum: 1 }
+        section: { type: string, maxLength: 160 }
+        release: { type: string, maxLength: 50 }
+        applicability: { type: string, enum: [target-release, general, other-release] }
+    KnowledgeExcerpt:
+      allOf:
+        - { $ref: "#/components/schemas/KnowledgeSource" }
+        - type: object
+          required: [text]
+          properties:
+            text: { type: string, maxLength: 1400 }
+    KnowledgeAiRequest:
+      type: object
+      required: [summary, mode]
+      properties:
+        summary: { $ref: "#/components/schemas/AssessmentExplanationInput" }
+        mode: { type: string, enum: [knowledge-only, allow-fallback] }
+    KnowledgeAiConsent:
+      type: object
+      required: [summary, mode, token]
+      properties:
+        summary: { $ref: "#/components/schemas/AssessmentExplanationInput" }
+        mode: { type: string, enum: [knowledge-only, allow-fallback] }
+        token: { type: string, maxLength: 200 }
+    KnowledgePayload:
+      allOf:
+        - { $ref: "#/components/schemas/KnowledgeAiRequest" }
+        - type: object
+          required: [references, disclosure]
+          properties:
+            references: { type: array, maxItems: 4, items: { $ref: "#/components/schemas/KnowledgeExcerpt" } }
+            disclosure: { type: string }
+    KnowledgePreview:
+      type: object
+      required: [payload, token, canGenerate]
+      properties:
+        payload: { $ref: "#/components/schemas/KnowledgePayload" }
+        token: { type: string }
+        canGenerate: { type: boolean }
+        diagnostics: { $ref: "#/components/schemas/KnowledgeRetrievalDiagnostics" }
+    KnowledgeRetrievalCandidate:
+      type: object
+      required: [id, title, section, release, matchedTerms, reason]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        section: { type: string }
+        release: { type: string }
+        matchedTerms: { type: array, items: { type: string } }
+        reason: { type: string, enum: [selected, insufficient-coverage, document-limit, excerpt-limit] }
+    KnowledgeRetrievalDiagnostics:
+      type: object
+      required: [terms, targetRelease, requiredTermMatches, candidateLimit, matchingPassages, applicableCharacters, requiredCharacters, candidates]
+      properties:
+        terms: { type: array, items: { type: string } }
+        targetRelease: { type: string }
+        requiredTermMatches: { type: integer }
+        candidateLimit: { type: integer }
+        matchingPassages: { type: integer }
+        applicableCharacters: { type: integer }
+        requiredCharacters: { type: integer }
+        candidates: { type: array, maxItems: 24, items: { $ref: "#/components/schemas/KnowledgeRetrievalCandidate" } }
+    AccountAuditAction:
+      type: string
+      enum: [bootstrap, user_created, user_updated, role_changed, permissions_changed, user_activated, user_deactivated, password_reset, password_changed, login, login_failed, logout]
+    AccountAuditEntry:
+      type: object
+      required: [id, actorId, actorUsername, targetId, targetUsername, action, createdAt]
+      properties:
+        id: { type: string }
+        actorId: { type: [string, "null"] }
+        actorUsername: { type: [string, "null"] }
+        targetId: { type: [string, "null"] }
+        targetUsername: { type: [string, "null"] }
+        action: { $ref: "#/components/schemas/AccountAuditAction" }
+        createdAt: { type: string, format: date-time }
+    AccountAuditPage:
+      type: object
+      required: [entries, page, hasMore]
+      properties:
+        entries: { type: array, items: { $ref: "#/components/schemas/AccountAuditEntry" } }
+        page: { type: integer }
+        hasMore: { type: boolean }
+    LocalUser:
+      type: object
+      required: [id, username, role, active, mustChangePassword, permissions, overrides]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        role: { type: string, enum: [Admin, Developer, Reviewer] }
+        active: { type: boolean }
+        mustChangePassword: { type: boolean }
+        permissions: { type: array, items: { type: string } }
+        overrides: { type: object, additionalProperties: { type: boolean } }
+    LocalUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user: { $ref: "#/components/schemas/LocalUser" }
+    LocalSession:
+      type: object
+      required: [user]
+      properties:
+        user:
+          anyOf:
+            - { $ref: "#/components/schemas/LocalUser" }
+            - { type: "null" }
+        csrfToken: { type: string }
+        setupRequired: { type: boolean }
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 64 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+    PasswordChangeInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, maxLength: 128 }
+        newPassword: { type: string, minLength: 14, maxLength: 128 }
+    PasswordResetInput:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, minLength: 14, maxLength: 128 }
+    PermissionCheckInput:
+      type: object
+      required: [permission]
+      properties:
+        permission: { type: string }
+    UserCreationInput:
+      type: object
+      required: [username, password, role]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 64 }
+        password: { type: string, minLength: 14, maxLength: 128 }
+        role: { type: string, enum: [Admin, Developer, Reviewer] }
+        overrides: { type: object, additionalProperties: { type: boolean } }
+    UserUpdateInput:
+      type: object
+      properties:
+        role: { type: string, enum: [Admin, Developer, Reviewer] }
+        active: { type: boolean }
+        overrides: { type: object, additionalProperties: { type: boolean } }
+    AiLimiterHealth:
+      type: object
+      required: [mode, available, checkedAt, cacheTtlMs, metrics]
+      properties:
+        mode: { type: string, enum: [local, redis-rest, invalid] }
+        available: { type: boolean }
+        checkedAt: { type: string }
+        cacheTtlMs: { type: integer }
+        metrics:
+          type: object
+          required: [probeChecks, probeFailures, acquisitions, admitted, rejections, acquisitionFailures, acquisitionLatencyMsTotal, acquisitionLatencyMsMax, releaseFailures]
+          properties:
+            probeChecks: { type: integer }
+            probeFailures: { type: integer }
+            acquisitions: { type: integer }
+            admitted: { type: integer }
+            rejections: { type: integer }
+            acquisitionFailures: { type: integer }
+            acquisitionLatencyMsTotal: { type: number }
+            acquisitionLatencyMsMax: { type: number }
+            releaseFailures: { type: integer }
+    AssessmentAiStatus:
+      type: object
+      required: [state, message]
+      properties:
+        state: { type: string, enum: [disabled, not-configured, configured, unavailable] }
+        message: { type: string }
+        provider: { type: string, enum: [openai, azure, deere-gateway] }
+        model: { type: string }
+    AssessmentExplanationInput:
+      type: object
+      additionalProperties: false
+      required: [kind, classification, recommendation, confidence]
+      properties:
+        kind: { type: string, enum: [object, interface] }
+        classification: { type: string, enum: [A, B, C, D] }
+        recommendation: { type: string, maxLength: 300 }
+        confidence: { type: string, enum: [low, medium, high, unknown] }
+        targetRelease: { type: string, minLength: 1, maxLength: 50 }
+    AssessmentExplanation:
+      type: object
+      required: [text, provider, model, generatedAt]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 6000 }
+        provider: { type: string, enum: [openai, azure, deere-gateway] }
+        model: { type: string }
+        generatedAt: { type: string }
+        sources: { type: array, maxItems: 4, items: { $ref: "#/components/schemas/KnowledgeSource" } }
+        knowledgeMode: { type: string, enum: [knowledge-only, allow-fallback] }
+        knowledgeDisclosure: { type: string, maxLength: 2000 }
+    AssessmentContext:
+      type: object
+      required: [system, targetRelease, weighted]
+      properties:
+        system: { type: string, minLength: 1, maxLength: 100 }
+        targetRelease: { type: string, minLength: 1, maxLength: 50 }
+        weighted: { type: boolean }
+    AssessmentInput:
+      type: object
+      required: [system, targetRelease, weighted, evidence]
+      properties:
+        system: { type: string, minLength: 1, maxLength: 100 }
+        targetRelease: { type: string, minLength: 1, maxLength: 50 }
+        weighted: { type: boolean }
+        evidence:
+          type: array
+          minItems: 1
+          maxItems: 11
+          items: { $ref: "#/components/schemas/EvidenceRecord" }
+        classificationOverrides:
+          type: array
+          maxItems: 500
+          items: { $ref: "#/components/schemas/ClassificationOverride" }
+    ClassificationOverride:
+      type: object
+      required: [level]
+      properties:
+        finding: { type: string, maxLength: 200 }
+        category: { type: string, maxLength: 100 }
+        objectPattern: { type: string, maxLength: 200 }
+        level: { type: string, enum: [A, B, C, D] }
+        reason: { type: string, maxLength: 500 }
+    EvidenceUpload:
+      type: object
+      required: [file, type]
+      properties:
+        file: { type: string, format: binary }
+        type: { type: string }
+    EvidenceRecord:
+      type: object
+      required: [type, rows, metadata, attestation]
+      properties:
+        type:
+          type: string
+          enum: [atc, cloud-readiness, custom-code, usage, modifications, enhancements, object-metadata, interfaces, readiness-check, cloud-alm, process-data]
+        fileName: { type: string }
+        count: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+        attestation: { type: string }
+    AssessmentResult:
+      type: object
+      additionalProperties: true
+    DemoResult:
+      type: object
+      required: [evidence, assessment]
+      properties:
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRecord" }
+        assessment: { $ref: "#/components/schemas/AssessmentResult" }
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+

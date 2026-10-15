@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Clean Core Assessment"
+description = "Standalone SAP Clean Core evidence assessment, inventory, recommendations, roadmap and exports extracted from Code-Remediator."
+version = "1.0.0"
+id = "artifacts/clean-core"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18551
+
+[services.development]
+run = "pnpm --filter @workspace/clean-core run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/clean-core", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/clean-core/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18551"
+BASE_PATH = "/"

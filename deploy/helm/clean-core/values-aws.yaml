@@ -1,0 +1,25 @@
+# Client-managed RDS PostgreSQL and S3; this chart never installs PostgreSQL.
+existingSecret: clean-core-runtime
+databaseSecretKey: DATABASE_URL
+# For file delivery, enable both runtimeEnvFile.enabled and
+# migration.runtimeEnvFile.enabled in the reviewed client overlay.
+# Populate their existing Secrets outside Helm; see deploy/DEERE-GATEWAY.md.
+databaseCA:
+  configMap: rds-ca-bundle
+  key: ca.pem
+config:
+  CC_KNOWLEDGE_STORAGE: s3
+  CC_S3_BUCKET: replace-private-versioned-bucket
+  CC_S3_REGION: eu-west-1
+  PRIVATE_OBJECT_DIR: /documents/private
+  CC_DB_POOL_MAX: "10"
+  CC_AZURE_STORAGE_URL: ""
+  CC_AZURE_STORAGE_CONTAINER: ""
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/replace-clean-core
+migration:
+  enabled: false
+  existingSecret: clean-core-migration
+  # Must exist before Helm hooks, with its own approved migration identity.
+  serviceAccountName: clean-core-migration

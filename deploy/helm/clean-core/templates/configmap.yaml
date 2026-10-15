@@ -1,0 +1,10 @@
+{{ include "cc.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cc.name" . }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  CC_REPLICA_COUNT: {{ ternary .Values.autoscaling.maxReplicas .Values.replicaCount .Values.autoscaling.enabled | quote }}

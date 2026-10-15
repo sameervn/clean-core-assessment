@@ -1,0 +1,58 @@
+trigger: none
+pr: none
+parameters:
+  - { name: pushImage, type: boolean, default: false }
+  - { name: deploy, type: boolean, default: false }
+pool: { vmImage: ubuntu-24.04 }
+# Define REGISTRY, IMAGE_REPOSITORY, KUBE_NAMESPACE, CLIENT_VALUES_FILE as
+# nonsecret pipeline variables. Supply credentials in protected variable groups.
+stages:
+  - stage: Build
+    jobs:
+      - job: Image
+        steps:
+          - checkout: self
+          - task: HelmInstaller@1
+            inputs: { helmVersionToInstall: 3.16.4 }
+          - bash: bash deploy/check-helm.sh
+          - bash: bash deploy/ci/image.sh
+            displayName: Build, Trivy critical gate, Syft SBOM and optional push
+            env:
+              IMAGE: $(REGISTRY)/$(IMAGE_REPOSITORY):$(Build.SourceVersion)
+              REGISTRY: $(REGISTRY)
+              REGISTRY_USER: $(REGISTRY_USER)
+              REGISTRY_PASSWORD: $(REGISTRY_PASSWORD)
+              PUSH_IMAGE: ${{ lower(parameters.pushImage) }}
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: generated-artifacts/sbom.spdx.json
+              artifact: sbom
+  - stage: Deploy
+    dependsOn: Build
+    condition: and(succeeded(), ${{ eq(parameters.deploy, true) }}, ${{ eq(parameters.pushImage, true) }})
+    jobs:
+      - deployment: ApprovedRelease
+        environment: client-approved
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: HelmInstaller@1
+                  inputs: { helmVersionToInstall: 3.16.4 }
+                - task: DownloadSecureFile@1
+                  name: kubeconfig
+                  inputs: { secureFile: client-kubeconfig }
+                - bash: |
+                    set -euo pipefail
+                    helm upgrade --install clean-core deploy/helm/clean-core \
+                      --namespace "$NAMESPACE" -f "$VALUES_FILE" \
+                      --set migration.enabled=true \
+                      --set-string image.repository="$REPOSITORY" \
+                      --set-string image.tag="$TAG" --atomic --wait --timeout 10m
+                  env:
+                    KUBECONFIG: $(kubeconfig.secureFilePath)
+                    NAMESPACE: $(KUBE_NAMESPACE)
+                    VALUES_FILE: $(CLIENT_VALUES_FILE)
+                    REPOSITORY: $(REGISTRY)/$(IMAGE_REPOSITORY)
+                    TAG: $(Build.SourceVersion)

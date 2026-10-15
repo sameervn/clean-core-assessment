@@ -1,0 +1,73 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "cc.name" . }}-migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  activeDeadlineSeconds: {{ .Values.migration.activeDeadlineSeconds }}
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- toYaml .Values.podLabels | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ .Values.migration.serviceAccountName }}
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: [node, dist/migrate.mjs]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: CC_STATIC_DIR, value: /app/public }
+            - { name: CC_DB_POOL_MAX, value: "3" }
+            {{- if .Values.migration.runtimeEnvFile.enabled }}
+            - { name: CC_RUNTIME_ENV_FILE, value: /etc/clean-core/.env }
+            {{- else }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.migration.existingSecret }}
+                  key: {{ .Values.migration.databaseSecretKey }}
+            {{- end }}
+            {{- if .Values.databaseCA.configMap }}
+            - { name: CC_DB_CA_FILE, value: /etc/db-ca/ca.pem }
+            {{- end }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            {{- if .Values.migration.runtimeEnvFile.enabled }}
+            - { name: runtime-env, mountPath: /etc/clean-core, readOnly: true }
+            {{- end }}
+            {{- if .Values.databaseCA.configMap }}
+            - { name: db-ca, mountPath: /etc/db-ca, readOnly: true }
+            {{- end }}
+      volumes:
+        {{- if .Values.migration.runtimeEnvFile.enabled }}
+        - name: runtime-env
+          secret:
+            secretName: {{ required "migration.runtimeEnvFile.existingSecret required" .Values.migration.runtimeEnvFile.existingSecret }}
+            defaultMode: 0440
+            items: [{ key: {{ .Values.migration.runtimeEnvFile.key | quote }}, path: .env }]
+        {{- end }}
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+        {{- if .Values.databaseCA.configMap }}
+        - name: db-ca
+          configMap:
+            name: {{ .Values.databaseCA.configMap }}
+            items: [{ key: {{ .Values.databaseCA.key }}, path: ca.pem }]
+        {{- end }}
+{{- end }}

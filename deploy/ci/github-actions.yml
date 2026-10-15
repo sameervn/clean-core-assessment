@@ -1,0 +1,61 @@
+# Copy this sample to .github/workflows/clean-core.yml after platform review.
+name: Clean Core image
+on:
+  workflow_dispatch:
+    inputs:
+      push_image: { type: boolean, default: false }
+      deploy: { type: boolean, default: false }
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: azure/setup-helm@v4.3.0
+        with: { version: v3.16.4 }
+      - run: bash deploy/check-helm.sh
+      - name: Build, scan, SBOM and optional push
+        run: bash deploy/ci/image.sh
+        env:
+          IMAGE: ${{ vars.REGISTRY }}/${{ vars.IMAGE_REPOSITORY }}:${{ github.sha }}
+          REGISTRY: ${{ vars.REGISTRY }}
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          PUSH_IMAGE: ${{ inputs.push_image }}
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: sbom
+          path: generated-artifacts/sbom.spdx.json
+  deploy:
+    if: ${{ inputs.deploy && inputs.push_image }}
+    needs: build
+    runs-on: ubuntu-24.04
+    # Configure required reviewers on this GitHub Environment before enabling.
+    environment: client-approved
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: azure/setup-helm@v4.3.0
+        with: { version: v3.16.4 }
+      - name: Approved Helm release
+        # CLIENT_VALUES_FILE may enable runtimeEnvFile and migration.runtimeEnvFile.
+        # Their Secrets must already exist, populated by the client's secret manager.
+        # Never pass AI_GATEWAY_CLIENT_SECRET or file contents through Helm arguments.
+        shell: bash
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_CONTENT }}
+          IMAGE_REPOSITORY: ${{ vars.REGISTRY }}/${{ vars.IMAGE_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+          NAMESPACE: ${{ vars.KUBE_NAMESPACE }}
+          VALUES_FILE: ${{ vars.CLIENT_VALUES_FILE }}
+        run: |
+          set -euo pipefail
+          umask 077
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          trap 'rm -f "$KUBECONFIG"' EXIT
+          printf '%s' "$KUBECONFIG_CONTENT" > "$KUBECONFIG"
+          helm upgrade --install clean-core deploy/helm/clean-core \
+            --namespace "$NAMESPACE" -f "$VALUES_FILE" \
+            --set migration.enabled=true \
+            --set-string image.repository="$IMAGE_REPOSITORY" \
+            --set-string image.tag="$IMAGE_TAG" --atomic --wait --timeout 10m

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: clean-core
+description: Clean Core Assessment application (external PostgreSQL and private document storage)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.28.0-0 <1.36.0-0"

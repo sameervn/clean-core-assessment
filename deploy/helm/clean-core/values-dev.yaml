@@ -1,0 +1,8 @@
+# A persistent local volume, one replica, no external cloud identity required.
+config:
+  CC_KNOWLEDGE_STORAGE: local
+  CC_STORAGE_LOCAL_DIR: /data
+localStorage:
+  enabled: true
+resources:
+  requests: { cpu: 100m, memory: 512Mi }

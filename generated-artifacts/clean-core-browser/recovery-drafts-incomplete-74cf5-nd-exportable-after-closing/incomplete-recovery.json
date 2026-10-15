@@ -1,0 +1,16 @@
+{
+  "format": "clean-core-workspace-backup",
+  "version": 1,
+  "exportedAt": "2026-10-14T12:05:56.509Z",
+  "workspace": {
+    "system": "",
+    "targetRelease": "S4HANA_2023",
+    "weighted": true,
+    "evidence": [],
+    "assessment": null,
+    "classificationOverrides": null,
+    "narratives": {},
+    "aiNarratives": {},
+    "baseline": null
+  }
+}

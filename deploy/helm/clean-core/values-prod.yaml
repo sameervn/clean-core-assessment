@@ -1,0 +1,12 @@
+replicaCount: 2
+ingress:
+  enabled: true
+  tls:
+    - hosts: [clean-core.example.com]
+      secretName: clean-core-tls
+pdb:
+  enabled: true
+# AI disabled by default. If enabled for multiple replicas, set redis-rest and
+# inject CC_AI_LIMITER_URL/TOKEN/NAMESPACE through the existing runtime Secret.
+config:
+  CC_AI_LIMITER: redis-rest

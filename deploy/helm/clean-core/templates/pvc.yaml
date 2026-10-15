@@ -1,0 +1,15 @@
+{{- if and .Values.localStorage.enabled (not .Values.localStorage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "cc.name" . }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- if .Values.localStorage.storageClass }}
+  storageClassName: {{ .Values.localStorage.storageClass }}
+  {{- end }}
+  resources:
+    requests: { storage: {{ .Values.localStorage.size }} }
+{{- end }}
