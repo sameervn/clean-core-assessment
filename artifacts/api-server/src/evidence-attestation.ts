@@ -6,9 +6,10 @@ function canonicalize(value: unknown): unknown {
     return Object.keys(value as Record<string, unknown>)
       .sort()
       .reduce<Record<string, unknown>>((result, key) => {
+        if (["__proto__", "prototype", "constructor"].includes(key)) throw new Error("Forbidden evidence field");
         result[key] = canonicalize((value as Record<string, unknown>)[key]);
         return result;
-      }, {});
+      }, Object.create(null));
   }
   return value;
 }

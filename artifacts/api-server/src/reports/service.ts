@@ -89,9 +89,21 @@ export async function finishUpload(identity: Identity, id: string, signal: Abort
   } catch (e) { await removeObject(sealed).catch(() => undefined); throw e; }
 }
 export async function templateBytes(identity: Identity, id: string) {
+  const company = (await pool.query(`SELECT t.*,v.object_path FROM cc_company_templates t
+    JOIN cc_company_template_versions v ON v.template_id=t.id AND v.version=t.version WHERE t.id=$1`, [id])).rows[0];
+  if (company) {
+    await fresh(identity, "export");
+    return { row: { ...company, company: true }, bytes: await readObject(company.object_path) };
+  }
   const row = await owned(pool, identity, id);
   if (row.status !== "ready") throw new AiError(409, "Template is not validated. Upload and validate it first.");
   return { row, bytes: await readObject(row.object_path) };
+}
+export async function recheckTemplate(c: Pick<PoolClient, "query">, identity: Identity, row: any) {
+  if (!row.company) return owned(c, identity, row.id);
+  const current = (await c.query("SELECT * FROM cc_company_templates WHERE id=$1 FOR SHARE", [row.id])).rows[0];
+  if (!current) throw new AiError(404, "Company template unavailable.");
+  return current;
 }
 export async function cleanupReports() {
   const rows = (await pool.query("SELECT object_path FROM cc_report_template_garbage WHERE delete_after<now() LIMIT 50")).rows;

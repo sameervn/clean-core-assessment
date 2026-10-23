@@ -5,6 +5,8 @@ import { bootstrapAdmin } from "./auth/service";
 import { startKnowledgeInitialization } from "./knowledge/schema";
 import { startCleanupJob } from "./knowledge/cleanup";
 import { initializeReports } from "./reports/schema";
+import { initializeCollaboration } from "./collaboration/schema";
+import { startNotificationDelivery } from "./collaboration/notifications";
 import { cleanupReports } from "./reports/service";
 import { pool } from "@workspace/db";
 import { markStopping, validateRuntime } from "./runtime";
@@ -25,6 +27,8 @@ if (!Number.isInteger(port) || port <= 0 || port > 65535) {
 validateRuntime();
 await bootstrapAdmin();
 if (process.env.CC_SCHEMA_BOOTSTRAP !== "false") await initializeReports();
+if (process.env.CC_SCHEMA_BOOTSTRAP !== "false") await initializeCollaboration();
+const notificationTimer = startNotificationDelivery();
 const reportCleanup = () => void cleanupReports().catch(() => logger.warn("Private report template cleanup failed; will retry."));
 reportCleanup();
 const reportTimer = setInterval(reportCleanup, 60_000);
@@ -41,7 +45,7 @@ function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
   markStopping();
-  clearInterval(reportTimer); clearInterval(knowledgeTimer);
+  clearInterval(reportTimer); clearInterval(knowledgeTimer); clearInterval(notificationTimer);
   logger.info("Shutdown requested; draining requests");
   const deadline = setTimeout(() => { server.closeAllConnections(); process.exit(1); }, 25_000);
   deadline.unref();

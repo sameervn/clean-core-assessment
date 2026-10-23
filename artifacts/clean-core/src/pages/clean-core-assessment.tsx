@@ -34,6 +34,12 @@ import { WorkspaceConflictError, WorkspaceClosedError, type WorkspaceStore, empt
 import { RecoveryDrafts } from "@/components/recovery-drafts";
 import { WordExportButton } from "@/components/word-export";
 import { allEntities } from "@/lib/word-reports";
+import { itemComplexitySize, itemComplexityLabel, COMPLEXITY_SIZES } from "@/lib/complexity-size";
+import { usageFor, usageCounts, USAGE_LABEL } from "@/lib/usage-status";
+import { UsageTab } from "@/components/usage-tab";
+import { PublishSharedButton } from "@/components/publish-shared";
+import { SendForApproval } from "@/components/send-for-approval";
+import { ApprovedAssessmentsFolder, CompanyTemplatesSection } from "@/components/approved-exports";
 import { classificationOrigin, loadPendingClassification, writePendingClassification, type PendingClassification } from "@/lib/workspace-store";
 
 const EVIDENCE_TYPES = [
@@ -787,6 +793,11 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     const sourceVersions = await exportSourceVersions(aiNarratives);
     const acceptedAi = aiNarrativeRows(aiNarratives, assessment.inventory, assessment.targetRelease, sourceVersions);
     const aiAppendix = acceptedAi.map(aiNarrativeReportText);
+    const uc = usageCounts(assessment.inventory, evidence);
+    const usageSummary = `in use ${uc["in-use"]}, not in use ${uc["not-in-use"]}, unknown ${uc.unknown}`;
+    const sizeTally = new Map<string, number>();
+    for (const item of assessment.inventory) { const z = itemComplexityLabel(item); sizeTally.set(z, (sizeTally.get(z) || 0) + 1); }
+    const sizeSummary = [...COMPLEXITY_SIZES, "Unassessed"].filter(z => sizeTally.get(z)).map(z => `${z} ${sizeTally.get(z)}`).join(", ") || "none";
     if (type === 'Exec Summary') {
       const waveSummary = (assessment.roadmap?.waves || []).map((wave: any) =>
         `## Wave ${wave.wave}: ${wave.name}\nObjects: ${wave.count}\nTarget solution patterns: ${solutionPatternLabels(wave.solutionPatterns).join(", ") || "Not specified"}\nObjective: ${wave.objective}\nExpected outcome: ${wave.expectedOutcome}\nExit criteria:\n${(wave.exitCriteria || []).map((criterion: string) => `- ${criterion}`).join("\n")}`,
@@ -794,7 +805,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
       const recommendationSummary = solutionSummaryRows(assessment).map(group => {
         return `## ${group.label} (${group.count})\nConfidence mix: ${group.confidenceText}\nRule rationale: ${group.rationales.join(" ") || "Review object-level evidence."}\nPrerequisites: ${group.prerequisites.join("; ") || "None recorded"}\nCautions: ${group.cautions.join("; ") || "None recorded"}\nValidation: Review the object-level evidence and validation questions before adoption.`;
       }).join("\n\n");
-      const content = `# Clean Core Executive Summary\nSystem: ${assessment.system}\nTarget: ${assessment.targetRelease.replace("S4HANA_", "S/4HANA ")}\nGenerated: ${new Date().toISOString()}\nClean Core Share: ${assessment.cleanCoreShare}%\nTechnical Debt Score: ${assessment.technicalDebtScore}\nTotal Objects: ${assessment.totals.objects}\n\n# Recommended Solution Patterns\n${recommendationSummary || "No solution recommendations available."}\n\n# Mitigation Roadmap\n${waveSummary}`;
+      const content = `# Clean Core Executive Summary\nSystem: ${assessment.system}\nTarget: ${assessment.targetRelease.replace("S4HANA_", "S/4HANA ")}\nGenerated: ${new Date().toISOString()}\nClean Core Share: ${assessment.cleanCoreShare}%\nTechnical Debt Score: ${assessment.technicalDebtScore}\nTotal Objects: ${assessment.totals.objects}\nUsage: ${usageSummary}\nComplexity sizes: ${sizeSummary}\n\n# Recommended Solution Patterns\n${recommendationSummary || "No solution recommendations available."}\n\n# Mitigation Roadmap\n${waveSummary}`;
       downloadBlob(content + (aiAppendix.length ? `\n\n# Accepted AI explanations\n\n${aiAppendix.join("\n\n").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}` : ""), `exec-summary-${assessment.system}.md`, 'text/markdown');
     } else if (type === 'CSV Details') {
       const fields: Array<[string, (item: any) => unknown]> = [
@@ -822,7 +833,10 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
         ["validation", item => item.mitigation?.validation || ''],
         ["dependencies", item => (item.dependencies || []).join("; ")],
         ["interfaceName", item => item.interfaceName || ''], ["interfaceType", item => item.interfaceType || ''],
-        ["releaseStatus", item => item.releaseStatus || '']
+        ["releaseStatus", item => item.releaseStatus || ''],
+        ["complexitySize", item => itemComplexityLabel(item)],
+        ["usageStatus", item => USAGE_LABEL[usageFor(item, evidence).status]],
+        ["usageCount", item => usageFor(item, evidence).count ?? ""],
       ];
       const headers = fields.map(([label]) => csvCell(label)).join(",");
       const rows = assessment.inventory.map((item: any) => fields.map(([, read]) => csvCell(read(item))).join(","));
@@ -873,8 +887,9 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
         classification: item.classification,
         confidence: item.confidence,
         disposition: item.disposition,
-        usageCount: item.usageCount,
-        complexity: item.complexity,
+        usageStatus: USAGE_LABEL[usageFor(item, evidence).status],
+        usageCount: usageFor(item, evidence).count ?? "",
+        complexitySize: itemComplexityLabel(item),
          classificationReason: item.classificationReason?.summary || item.classificationExplanation,
          matchedRule: item.classificationReason?.matchedRule || '',
          recommendedSolutionId: getSolutionRecommendation(item)?.primary?.id || '',
@@ -933,12 +948,14 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
         ["Technical debt score", assessment.technicalDebtScore.toLocaleString()],
         ["Custom objects", assessment.totals.objects.toLocaleString()],
         ["Interfaces analyzed", assessment.inventory.filter((i:any) => i.interfaceName || i.dimension === 'Integration').length.toLocaleString()],
+        ["Usage (in / not / unknown)", `${uc["in-use"]} / ${uc["not-in-use"]} / ${uc.unknown}`],
+        ["Complexity sizes", sizeSummary],
       ];
       summaryItems.forEach(([label, value], index) => {
         const x = 0.7 + (index % 3) * 4.1;
         const y = 1.45 + Math.floor(index / 3) * 2.05;
         summarySlide.addText(label, { x, y, w: 3.65, h: 0.35, fontSize: 11, color: "53697A" });
-        summarySlide.addText(value, { x, y: y + 0.42, w: 3.65, h: 0.65, fontSize: 23, bold: true, color: index === 0 ? "008C7A" : "081D33" });
+        summarySlide.addText(value, { x, y: y + 0.42, w: 3.65, h: 0.65, fontSize: 23, fit: "shrink", bold: true, color: index === 0 ? "008C7A" : "081D33" });
       });
 
       const roadmapSlide = presentation.addSlide();
@@ -990,6 +1007,8 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
         ["Technical debt score", assessment.technicalDebtScore.toLocaleString()],
         ["Custom objects assessed", assessment.totals.objects.toLocaleString()],
         ["Interfaces analyzed", assessment.inventory.filter((i:any) => i.interfaceName || i.dimension === 'Integration').length.toLocaleString()],
+        ["Usage (in / not / unknown)", `${uc["in-use"]} / ${uc["not-in-use"]} / ${uc.unknown}`],
+        ["Complexity sizes", sizeSummary],
         ["Classification engine", assessment.provenance.engineVersion],
         ["Evidence confidence", assessment.evidenceQuality.confidence],
       ];
@@ -1015,7 +1034,14 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     aiReviewQueue,
     evidence, setEvidence, assessment, setAssessment, baseline,
     classificationOverrides, setClassificationOverrides, narratives, aiNarratives, setAiNarratives,
-    perms, guarded, readOnly,
+    perms, guarded, readOnly, saveConflict, newerWorkspace,
+    persistForReview: async () => {
+      if (!store || unreadable || conflictRef.current || newerWorkspace) throw new Error("Resolve the browser workspace conflict before sending");
+      dirtyRef.current = true;
+      persistNow(snapshot);
+      await saveChain.current;
+      if (dirtyRef.current || conflictRef.current) throw new Error("The workspace could not be saved; retry the local save before sending");
+    },
     setNarratives: (update: any) => guarded("notes", () => setNarratives(update)),
     system, targetRelease, weighted, evidenceType, setEvidenceType, setActiveTab,
     // Changing the assessment context invalidates the current result (baseline is kept for comparison).
@@ -1023,7 +1049,9 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     setTargetRelease: (v: string) => { setTargetRelease(v); setAssessment(null); },
     setWeighted: (v: boolean) => { setWeighted(v); setAssessment(null); },
     uploadEvidence, runAssessment, loadDemoData, requestDemo, saveBaseline, handleExport, handleSaveOverride, handleSaveBulkOverride, toast,
-    exportBackup, handleRestoreFile, requestReset, saveState, saveError, lastSavedAt, retrySave: () => persistNow(snapshot),
+    exportBackup, handleRestoreFile,
+    /** Synchronous backup download; callers must already be authorized for export. */
+    downloadBackupNow: () => downloadBlob(JSON.stringify(buildBackup(snapshot), null, 2), `clean-core-workspace-${snapshot.system}-${new Date().toISOString().slice(0, 10)}.json`, "application/json"), requestReset, saveState, saveError, lastSavedAt, retrySave: () => persistNow(snapshot),
     canReload: hydrated && !unreadable && (saveState === "saved" || saveState === "idle"),
     safeReload: () => {
       // Check again at click time: never discard pending or failed writes.
@@ -1039,6 +1067,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     { id: "interfaces", label: "Interfaces", icon: Network },
     { id: "ai-review", label: `AI Review (${aiReviewQueue.length})`, icon: ShieldAlert },
     { id: "roadmap", label: "Mitigation Roadmap", icon: Target },
+    { id: "usage", label: "Usage", icon: Zap },
     { id: "evidence", label: "Evidence & Sources", icon: Database },
     { id: "export", label: "Export Center", icon: Download },
   ];
@@ -1190,6 +1219,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
             <Button variant="outline" size="sm" onClick={() => setActiveTab('evidence')} data-testid="button-configuration">
                <Settings2 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Configuration</span>
             </Button>
+            {!readOnly && assessment && <PublishSharedButton ctx={ctx} />}
             {headerExtras}
          </div>
       </header>
@@ -1272,6 +1302,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
               <LazySection load={loadEvidenceTab} section="Evidence" componentProps={{ ctx, evidenceTypes: EVIDENCE_TYPES }} canReload={ctx.canReload} onSafeReload={ctx.safeReload} onExportBackup={ctx.exportBackup} />
             )}
             {activeTab === 'export' && <ExportCenterTab ctx={ctx} />}
+           {activeTab === 'usage' && <UsageTab ctx={ctx} />}
          </main>
       </div>
       <ReplaceWorkspaceDialog pending={pendingReplace} onClose={() => setPendingReplace(null)} />
@@ -1590,14 +1621,15 @@ function ExplorerTab({ ctx }: { ctx: any }) {
     if (selectedLevel !== "ALL" && i.classification !== selectedLevel) return false;
     if (selectedModule !== "ALL" && i.module !== selectedModule) return false;
     if (selectedPackage !== "ALL" && i.package !== selectedPackage) return false;
-    if (selectedUsage === "ACTIVE" && !(Number(i.usageCount) > 0)) return false;
-    if (selectedUsage === "DEAD" && Number(i.usageCount) !== 0) return false;
+    if (selectedUsage !== "ALL") {
+      const u = usageFor(i, ctx.evidence).status;
+      if (selectedUsage === "ACTIVE" && u !== "in-use") return false;
+      if (selectedUsage === "DEAD" && u !== "not-in-use") return false;
+      if (selectedUsage === "UNKNOWN" && u !== "unknown") return false;
+    }
     if (selectedDisposition !== "ALL" && i.disposition !== selectedDisposition) return false;
     if (selectedRecommendation !== "ALL" && recommendationLabel(i) !== selectedRecommendation) return false;
-    const complexity = Number(i.complexity) || 0;
-    if (selectedComplexity === "LOW" && complexity > 10) return false;
-    if (selectedComplexity === "MEDIUM" && (complexity <= 10 || complexity > 25)) return false;
-    if (selectedComplexity === "HIGH" && complexity <= 25) return false;
+    if (selectedComplexity !== "ALL" && (itemComplexitySize(i) ?? "UNASSESSED") !== selectedComplexity) return false;
     if (searchTerm && !i.objectName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
@@ -1640,7 +1672,7 @@ function ExplorerTab({ ctx }: { ctx: any }) {
            </Select>
            <Select value={selectedUsage} onValueChange={setSelectedUsage}>
               <SelectTrigger className="w-[135px] bg-background"><SelectValue placeholder="Usage" /></SelectTrigger>
-              <SelectContent><SelectItem value="ALL">All usage</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="DEAD">Dead code</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="ALL">All usage</SelectItem><SelectItem value="ACTIVE">In use</SelectItem><SelectItem value="DEAD">Not in use</SelectItem><SelectItem value="UNKNOWN">Unknown</SelectItem></SelectContent>
            </Select>
            <Select value={selectedDisposition} onValueChange={setSelectedDisposition}>
               <SelectTrigger className="w-[170px] bg-background"><SelectValue placeholder="Disposition" /></SelectTrigger>
@@ -1648,7 +1680,7 @@ function ExplorerTab({ ctx }: { ctx: any }) {
            </Select>
            <Select value={selectedComplexity} onValueChange={setSelectedComplexity}>
               <SelectTrigger className="w-[145px] bg-background"><SelectValue placeholder="Complexity" /></SelectTrigger>
-              <SelectContent><SelectItem value="ALL">All complexity</SelectItem><SelectItem value="LOW">Low</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="HIGH">High</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="ALL">All complexity</SelectItem>{COMPLEXITY_SIZES.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}<SelectItem value="UNASSESSED">Unassessed</SelectItem></SelectContent>
            </Select>
             <Select value={selectedRecommendation} onValueChange={setSelectedRecommendation}>
                <SelectTrigger className="w-[220px] bg-background"><SelectValue placeholder="Recommended solution" /></SelectTrigger>
@@ -1774,6 +1806,7 @@ function ObjectDetailPanel({ id, ctx, onClose }: any) {
         </CardHeader>
         <ScrollArea className="flex-1 p-4">
             <div className="space-y-6">
+               <SendForApproval ctx={ctx} item={item} kind="object" unsaved={narrative !== (ctx.narratives[id] || "") || !!reason.trim() || level !== item.classification} />
                <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Classification Reasoning</h4>
                   <div className="flex flex-col gap-2">
@@ -1823,11 +1856,11 @@ function ObjectDetailPanel({ id, ctx, onClose }: any) {
                   </div>
                   <div>
                      <p className="text-muted-foreground mb-1 flex items-center">Complexity <InfoTooltip text="A relative indicator derived from findings, dependencies, and modification patterns; use it only to sequence review." /></p>
-                     <p className="font-medium">{item.complexity || 'Standard'}</p>
+                     <p className="font-medium">{itemComplexityLabel(item)}</p>
                   </div>
                   <div>
-                     <p className="text-muted-foreground mb-1 flex items-center">Usage / Activity <InfoTooltip text="Observed execution count from the supplied usage evidence. Zero means no activity was detected in the evidence window." /></p>
-                     <p className="font-medium">{item.usageCount > 0 ? `${item.usageCount} executions` : 'No usage detected'}</p>
+                     <p className="text-muted-foreground mb-1 flex items-center">Usage / Activity <InfoTooltip text="Conservative status: positive count means in use; not in use only with an explicit zero over a complete observation period at 100% telemetry coverage; otherwise unknown." /></p>
+                     <p className="font-medium">{(() => { const u = usageFor(item, ctx.evidence); return u.status === "in-use" ? `In use${u.count !== null ? ` · ${u.count} executions` : ""}` : u.status === "not-in-use" ? "Not in use (complete observation)" : `Unknown · ${u.reason}`; })()}</p>
                   </div>
                </div>
 
@@ -2031,6 +2064,7 @@ function InterfaceDetailPanel({ id, ctx, onClose }: any) {
         </CardHeader>
         <ScrollArea className="flex-1 p-4">
             <div className="space-y-6">
+               <SendForApproval ctx={ctx} item={item} kind="interface" unsaved={narrative !== (ctx.narratives[id] || "") || !!reason.trim() || level !== item.classification} />
                <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Classification Reasoning</h4>
                   <div className="flex flex-col gap-2">
@@ -2399,7 +2433,13 @@ function RoadmapTab({ ctx }: { ctx: any }) {
 
 function ExportCenterTab({ ctx }: { ctx: any }) {
   const { handleExport, assessment } = ctx;
-  if (!assessment) return <EmptyState ctx={ctx} />;
+  if (!assessment) return (
+    <div className="max-w-5xl mx-auto space-y-6 h-full overflow-y-auto pr-4 pb-8">
+      <EmptyState ctx={ctx} />
+      <ApprovedAssessmentsFolder canExport={ctx.perms.export} />
+      <CompanyTemplatesSection />
+    </div>
+  );
 
   return (
       <div className="max-w-5xl mx-auto space-y-6 h-full overflow-y-auto pr-4 pb-8">
@@ -2417,6 +2457,8 @@ function ExportCenterTab({ ctx }: { ctx: any }) {
               <ExportCard title="PDF Assessment" description="Portable executive scorecard for governance and review." icon={FileText} disabled={!ctx.perms.export} onClick={() => handleExport('PDF')} />
               <ExportCard title="Evidence Pack (JSON)" description="Server-attested normalized evidence sets used for this assessment." icon={Database} disabled={!ctx.perms.export} onClick={() => handleExport('Evidence Pack')} />
           </div>
+          <ApprovedAssessmentsFolder canExport={ctx.perms.export} />
+          <CompanyTemplatesSection />
       </div>
   )
 }

@@ -22,6 +22,11 @@ secret manager, never Helm values, ConfigMaps, build arguments or logs.
 | CC_STATIC_DIR | Opt-in compiled frontend directory; absent preserves Replit split services | container | no | — | /app/public |
 | CC_SCHEMA_BOOTSTRAP | Allow legacy runtime knowledge/template DDL; false with migration identity | no | no | true | false |
 | CC_REPLICA_COUNT | Scaling validation; Helm sets max replicas for HPA | no | no | 1 | 2 |
+| CC_API_WORKER_COUNT | Declare API processes per replica; multiple workers require shared HTTP limits | no | no | 1 | 2 |
+| CC_HTTP_LIMITER | local or redis-rest; shared mode required for multiple API processes/replicas | scaling | no | local | redis-rest |
+| CC_HTTP_LIMITER_URL | HTTPS Redis REST command endpoint (not redis://); no credentials/query/fragment | redis-rest | no | — | https://limiter.example.com |
+| CC_HTTP_LIMITER_TOKEN | Dedicated bearer token delivered through runtime Secret/file | redis-rest | yes | — | REPLACE |
+| CC_HTTP_LIMITER_NAMESPACE | Same 1–80 letters/digits/underscore/hyphen identifier across all API processes | redis-rest | no | — | clean-core-prod |
 | CC_COOKIE_INSECURE | HTTP-only local test cookie/origin opt-out; never HTTPS production | no | no | false | true (localhost only) |
 | CC_DB_POOL_MAX | Maximum DB connections per process, 1–100 | no | no | 10 | 5 |
 | CC_DB_CA_FILE | Verified PostgreSQL CA PEM; no URL ssl overrides when set | RDS profile | no | — | /etc/db-ca/ca.pem |
@@ -56,6 +61,17 @@ secret manager, never Helm values, ConfigMaps, build arguments or logs.
 | CC_AI_LIMITER_URL | HTTPS Redis REST command endpoint, not redis:// | redis-rest | no | — | https://limiter.example.com |
 | CC_AI_LIMITER_TOKEN | Redis REST bearer token | redis-rest | yes | — | REPLACE |
 | CC_AI_LIMITER_NAMESPACE | Shared budget identifier across replicas | redis-rest | no | — | clean-core-prod |
+
+## Read-only GitHub assessment source
+
+| Variable | Purpose | Required | Secret | Default | Example |
+|---|---|---|---|---|---|
+| CC_GITHUB_TOKEN | Fine-grained Contents/Metadata read-only token for approved repositories | GitHub ingestion | yes | disabled | REPLACE |
+| CC_GITHUB_REPOSITORIES | Comma-separated exact owner/repo allowlist | GitHub ingestion | no | disabled | client/abap-source |
+
+No source is executed or sent to AI by deterministic evaluation. Connection is
+an explicit account opt-in to administrator-managed service access. See
+`docs/collaborative-assessments.md` for bounds and shared-storage requirements.
 
 ## SDK-managed identity
 
@@ -94,6 +110,7 @@ standard provider variables; the listed options are the supported handoff paths.
 | CC_TEST_ACCOUNTS | Opt into synthetic DB account integration tests | tests | no | false | true |
 | CC_TEST_KNOWLEDGE | Opt into guidance DB/storage integration tests | tests | no | false | true |
 | CC_TEST_REPORTS | Opt into personal DOCX DB/storage tests | tests | no | false | true |
+| CC_TEST_COLLABORATION | Opt into synthetic cross-account review DB/private-file tests | tests | no | false | true |
 | CC_AI_REQUIRE_REDIS_TESTS | Fail rather than skip local Redis fixture tests | tests | no | 0 | 1 |
 | CLEAN_CORE_BASE_URL | Browser test app URL | tests | no | Replit development URL | http://localhost:80 |
 | PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH | Test browser binary | tests | no | discovery | /repl/tools/bin/chromium |

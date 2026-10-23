@@ -7,8 +7,13 @@ import cookieParser from "cookie-parser";
 import { readIdentity, mutationProtection } from "./auth/middleware";
 import { accountRouter } from "./routes/accounts";
 import { reportTemplateRouter } from "./routes/report-templates";
+import { collaborationRouter } from "./routes/collaboration";
+import { assessmentGithubRouter } from "./routes/assessment-github";
+import { assessmentExportsRouter } from "./routes/assessment-exports";
 import { probes, productionFrontend } from "./runtime";
 import { uploadRouter } from "./knowledge/upload-token";
+import { requestLimit } from "./request-limits";
+import { boundRequest } from "./input-bounds";
 
 const app: Express = express();
 
@@ -32,8 +37,15 @@ app.use(
   }),
 );
 app.disable("x-powered-by");
+// Do not trust arbitrary X-Forwarded-For/Forwarded headers. A reverse proxy
+// shares a conservative IP budget; per-account limits still isolate users.
+app.set("trust proxy", false);
 app.use(probes);
 app.use("/api", probes);
+// Before cookies, identity DB lookup, raw upload parsing and JSON/multipart.
+app.use("/api", requestLimit("api", 600));
+app.use("/api/storage-upload", requestLimit("upload", 30));
+app.use("/api/clean-core/evidence", requestLimit("evidence", 20));
 // This route uses a short-lived, path-bound capability, not cookie authority.
 app.use("/api/storage-upload", uploadRouter);
 app.use(cookieParser());
@@ -42,13 +54,15 @@ app.use("/api", (req, res, next) => {
   readIdentity(req, res, next);
 });
 app.use("/api", mutationProtection);
-app.use("/api/auth", express.json({ limit: 4096 }));
-app.use("/api/admin", express.json({ limit: 8192 }));
+app.use("/api/auth", express.json({ limit: 4096 }), boundRequest);
+app.use("/api/admin", express.json({ limit: 8192 }), boundRequest);
 app.use("/api", accountRouter);
-app.use("/api/report-templates", express.json({ limit: 2_100_000 }), reportTemplateRouter);
+app.use("/api/report-templates", express.json({ limit: 2_100_000 }), boundRequest, reportTemplateRouter);
 // Apply the smaller AI body limit before the assessment's evidence parser.
 app.use("/api/clean-core/ai", express.json({ limit: 2048 }));
 app.use(express.json({ limit: 18_000_000 }));
+app.use(boundRequest);
+app.use("/api/shared-assessments", assessmentGithubRouter, assessmentExportsRouter, collaborationRouter);
 
 app.use("/api", router);
 app.use("/api", (_req, res) => { res.status(404).json({ message: "API route not found." }); });

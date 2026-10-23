@@ -1,5 +1,6 @@
 // Runs inside the disposable production container with no external provider.
 import assert from "node:assert/strict";
+import { withPrivateTempFile } from "./private-temp.mjs";
 const base = "http://127.0.0.1:8080";
 let ready = false;
 for (let i = 0; i < 60; i++) {
@@ -16,7 +17,7 @@ assert.match(await (await fetch(`${base}/client-spa-route`)).text(), /<html/);
 for (const [, asset] of home.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) assert((await fetch(base + asset)).ok, asset);
 const fs = await import("node:fs/promises");
 await assert.rejects(fs.writeFile("/app/read-only-check", "must fail"));
-await fs.writeFile("/tmp/write-check", "ok");
+await withPrivateTempFile(handle => handle.writeFile("ok"));
 let cookie = "", csrf = "";
 async function api(path, method = "GET", data) {
   return fetch(`${base}/api${path}`, { method, headers: {

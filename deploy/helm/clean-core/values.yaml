@@ -29,6 +29,10 @@ config:
   CC_SCHEMA_BOOTSTRAP: "false"
   CC_AI_ENABLED: "false"
   CC_AI_LIMITER: local
+  # No extra service for the default one-process deployment. Scaling requires
+  # redis-rest plus CC_HTTP_LIMITER_URL/TOKEN/NAMESPACE in the runtime Secret.
+  CC_HTTP_LIMITER: local
+  CC_API_WORKER_COUNT: "1"
   CC_DB_POOL_MAX: "10"
   CC_KNOWLEDGE_STORAGE: azure
   PRIVATE_OBJECT_DIR: /documents/private

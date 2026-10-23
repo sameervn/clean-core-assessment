@@ -132,7 +132,7 @@ test("deterministic recommendation rules cover the controlled clean-core pattern
       type: "usage",
       rows: [
         { objectName: "Z_STANDARD", usageCount: 20 },
-        { objectName: "Z_RETIRE", usageCount: 0 },
+        { objectName: "Z_RETIRE", usageCount: 0, telemetryCoverage: 100, collectionStart: "2026-08-01", collectionEnd: "2026-08-31" },
         { objectName: "Z_KEY_USER", usageCount: 5 },
         { objectName: "Z_RELEASED_BADI", usageCount: 10 },
         { objectName: "Z_RAP_SERVICE", usageCount: 30 },

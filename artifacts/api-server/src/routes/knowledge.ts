@@ -8,9 +8,13 @@ import { cleanupStatus, runCleanup } from "../knowledge/cleanup";
 import { AiError } from "../assessment-ai";
 import { canManage, documentView, findDocument, startUpload, processUpload, deleteDocument, freshUser, libraryTransaction } from "../knowledge/service";
 import { readObject, storageConfigured } from "../knowledge/storage";
+import { requestLimit } from "../request-limits";
 
 export const knowledgeRouter = Router();
 knowledgeRouter.use(requirePermission("knowledge.read"));
+knowledgeRouter.use(requestLimit("knowledge", 120, true));
+knowledgeRouter.post("/:id/process", requestLimit("knowledge-process", 10, true));
+knowledgeRouter.post("/cleanup", requestLimit("knowledge-cleanup", 5, true));
 const wrap = (handler: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await handler(req, res, next); }
   catch (error) {

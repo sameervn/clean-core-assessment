@@ -8,16 +8,857 @@
 import * as zod from 'zod';
 
 
+export const GetReviewNotificationPreferencesResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+export const UpdateReviewNotificationPreferencesBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const UpdateReviewNotificationPreferencesResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+export const listReviewNotificationsQueryCursorMax = 19;
+
+
+export const listReviewNotificationsQueryCursorRegExp = new RegExp('^[1-9][0-9]{0,18}$');
+export const listReviewNotificationsQueryFilterDefault = `all`;
+
+export const ListReviewNotificationsQueryParams = zod.object({
+  "cursor": zod.coerce.string().max(listReviewNotificationsQueryCursorMax).regex(listReviewNotificationsQueryCursorRegExp).optional().describe('Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.'),
+  "filter": zod.enum(['all', 'unread']).default(listReviewNotificationsQueryFilterDefault).describe('Apply the same filter when following nextCursor.')
+})
+
+export const ListReviewNotificationsResponse = zod.object({
+  "notifications": zod.array(zod.object({
+  "id": zod.string(),
+  "assessmentId": zod.uuid(),
+  "entityId": zod.uuid(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "read": zod.boolean()
+})),
+  "nextCursor": zod.string().nullable().describe('Exclusive cursor for older matching alerts, or null when no more remain. Not an unread total or a snapshot; current access and read state are checked on each request.')
+})
+
+
+export const readReviewNotificationPathNotificationIdRegExp = new RegExp('^[1-9][0-9]*$');
+
+
+export const ReadReviewNotificationParams = zod.object({
+  "notificationId": zod.coerce.string().regex(readReviewNotificationPathNotificationIdRegExp)
+})
+
+export const ReadReviewNotificationResponse = zod.unknown()
+
+
+export const ListSharedAssessmentsResponse = zod.object({
+  "assessments": zod.array(zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "system": zod.string(),
+  "target_release": zod.string(),
+  "owner_id": zod.string(),
+  "access": zod.enum(['edit', 'review', 'read']).optional(),
+  "count": zod.string().optional()
+}))
+})
+
+
+export const publishSharedAssessmentBodyImportKeyMax = 200;
+
+export const publishSharedAssessmentBodyNameMax = 160;
+
+export const publishSharedAssessmentBodySystemMax = 100;
+
+export const publishSharedAssessmentBodyEntitiesItemKeyMax = 1000;
+
+export const publishSharedAssessmentBodyEntitiesItemNameMax = 500;
+
+export const publishSharedAssessmentBodyEntitiesItemContentClassificationExplanationMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentNarrativeMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentRecommendationMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentRecommendationRationaleMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentPrerequisitesMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentCautionsMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentAlternativesMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentValidationQuestionsMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentMitigationMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesItemContentMitigationValidationMax = 20000;
+
+export const publishSharedAssessmentBodyEntitiesMax = 5000;
+
+
+
+export const PublishSharedAssessmentBody = zod.object({
+  "importKey": zod.string().min(1).max(publishSharedAssessmentBodyImportKeyMax),
+  "name": zod.string().min(1).max(publishSharedAssessmentBodyNameMax),
+  "system": zod.string().min(1).max(publishSharedAssessmentBodySystemMax),
+  "targetRelease": zod.enum(['S4HANA_2025']),
+  "entities": zod.array(zod.object({
+  "key": zod.string().min(1).max(publishSharedAssessmentBodyEntitiesItemKeyMax),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string().min(1).max(publishSharedAssessmentBodyEntitiesItemNameMax),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentRecommendationMax),
+  "recommendationRationale": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentPrerequisitesMax),
+  "cautions": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentCautionsMax),
+  "alternatives": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentAlternativesMax),
+  "validationQuestions": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentValidationQuestionsMax),
+  "mitigation": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentMitigationMax),
+  "mitigationValidation": zod.string().max(publishSharedAssessmentBodyEntitiesItemContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown())
+})).min(1).max(publishSharedAssessmentBodyEntitiesMax)
+})
+
+export const PublishSharedAssessmentResponse = zod.object({
+  "assessment": zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "system": zod.string(),
+  "target_release": zod.string(),
+  "owner_id": zod.string(),
+  "access": zod.enum(['edit', 'review', 'read']).optional(),
+  "count": zod.string().optional()
+}),
+  "existing": zod.boolean()
+})
+
+
+export const getWorkspaceReviewQueryImportKeyMax = 200;
+
+export const getWorkspaceReviewQueryKeyMax = 1000;
+
+
+
+export const GetWorkspaceReviewQueryParams = zod.object({
+  "importKey": zod.coerce.string().min(1).max(getWorkspaceReviewQueryImportKeyMax),
+  "key": zod.coerce.string().min(1).max(getWorkspaceReviewQueryKeyMax)
+})
+
+export const getWorkspaceReviewResponseEntityOneContentClassificationExplanationMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentNarrativeMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentRecommendationMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentRecommendationRationaleMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentPrerequisitesMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentCautionsMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentAlternativesMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentValidationQuestionsMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentMitigationMax = 20000;
+
+export const getWorkspaceReviewResponseEntityOneContentMitigationValidationMax = 20000;
+
+
+
+export const GetWorkspaceReviewResponse = zod.object({
+  "assessment": zod.union([zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "system": zod.string(),
+  "target_release": zod.string(),
+  "owner_id": zod.string(),
+  "access": zod.enum(['edit', 'review', 'read']).optional(),
+  "count": zod.string().optional()
+}),zod.null()]),
+  "entity": zod.union([zod.object({
+  "id": zod.uuid(),
+  "assessment_id": zod.uuid(),
+  "entity_key": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(getWorkspaceReviewResponseEntityOneContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(getWorkspaceReviewResponseEntityOneContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(getWorkspaceReviewResponseEntityOneContentRecommendationMax),
+  "recommendationRationale": zod.string().max(getWorkspaceReviewResponseEntityOneContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(getWorkspaceReviewResponseEntityOneContentPrerequisitesMax),
+  "cautions": zod.string().max(getWorkspaceReviewResponseEntityOneContentCautionsMax),
+  "alternatives": zod.string().max(getWorkspaceReviewResponseEntityOneContentAlternativesMax),
+  "validationQuestions": zod.string().max(getWorkspaceReviewResponseEntityOneContentValidationQuestionsMax),
+  "mitigation": zod.string().max(getWorkspaceReviewResponseEntityOneContentMitigationMax),
+  "mitigationValidation": zod.string().max(getWorkspaceReviewResponseEntityOneContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "sources": zod.array(zod.record(zod.string(), zod.unknown())),
+  "version": zod.int(),
+  "state": zod.enum(['Draft', 'Submitted', 'Approved', 'Changes requested']),
+  "submitter_id": zod.string().nullish(),
+  "reviewer_id": zod.string().nullish()
+}),zod.null()]),
+  "reviewers": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "member": zod.boolean(),
+  "eligible": zod.boolean()
+}))
+})
+
+
+export const prepareWorkspaceReviewBodyImportKeyMax = 200;
+
+export const prepareWorkspaceReviewBodyNameMax = 160;
+
+export const prepareWorkspaceReviewBodySystemMax = 100;
+
+export const prepareWorkspaceReviewBodyRecordKeyMax = 1000;
+
+export const prepareWorkspaceReviewBodyRecordNameMax = 500;
+
+export const prepareWorkspaceReviewBodyRecordContentClassificationExplanationMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentNarrativeMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentRecommendationMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentRecommendationRationaleMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentPrerequisitesMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentCautionsMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentAlternativesMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentValidationQuestionsMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentMitigationMax = 20000;
+
+export const prepareWorkspaceReviewBodyRecordContentMitigationValidationMax = 20000;
+
+
+export const prepareWorkspaceReviewBodyReviewerIdMax = 200;
+
+
+
+export const PrepareWorkspaceReviewBody = zod.object({
+  "importKey": zod.string().min(1).max(prepareWorkspaceReviewBodyImportKeyMax),
+  "name": zod.string().min(1).max(prepareWorkspaceReviewBodyNameMax),
+  "system": zod.string().min(1).max(prepareWorkspaceReviewBodySystemMax),
+  "targetRelease": zod.enum(['S4HANA_2025']),
+  "record": zod.object({
+  "key": zod.string().min(1).max(prepareWorkspaceReviewBodyRecordKeyMax),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string().min(1).max(prepareWorkspaceReviewBodyRecordNameMax),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(prepareWorkspaceReviewBodyRecordContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(prepareWorkspaceReviewBodyRecordContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(prepareWorkspaceReviewBodyRecordContentRecommendationMax),
+  "recommendationRationale": zod.string().max(prepareWorkspaceReviewBodyRecordContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(prepareWorkspaceReviewBodyRecordContentPrerequisitesMax),
+  "cautions": zod.string().max(prepareWorkspaceReviewBodyRecordContentCautionsMax),
+  "alternatives": zod.string().max(prepareWorkspaceReviewBodyRecordContentAlternativesMax),
+  "validationQuestions": zod.string().max(prepareWorkspaceReviewBodyRecordContentValidationQuestionsMax),
+  "mitigation": zod.string().max(prepareWorkspaceReviewBodyRecordContentMitigationMax),
+  "mitigationValidation": zod.string().max(prepareWorkspaceReviewBodyRecordContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown())
+}),
+  "expectedVersion": zod.int().min(1).nullable(),
+  "reviewerId": zod.string().min(1).max(prepareWorkspaceReviewBodyReviewerIdMax),
+  "shareWithReviewer": zod.boolean(),
+  "requestId": zod.uuid()
+})
+
+export const prepareWorkspaceReviewResponseEntityContentClassificationExplanationMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentNarrativeMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentRecommendationMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentRecommendationRationaleMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentPrerequisitesMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentCautionsMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentAlternativesMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentValidationQuestionsMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentMitigationMax = 20000;
+
+export const prepareWorkspaceReviewResponseEntityContentMitigationValidationMax = 20000;
+
+
+
+export const PrepareWorkspaceReviewResponse = zod.object({
+  "assessment": zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "system": zod.string(),
+  "target_release": zod.string(),
+  "owner_id": zod.string(),
+  "access": zod.enum(['edit', 'review', 'read']).optional(),
+  "count": zod.string().optional()
+}),
+  "entity": zod.object({
+  "id": zod.uuid(),
+  "assessment_id": zod.uuid(),
+  "entity_key": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(prepareWorkspaceReviewResponseEntityContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(prepareWorkspaceReviewResponseEntityContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(prepareWorkspaceReviewResponseEntityContentRecommendationMax),
+  "recommendationRationale": zod.string().max(prepareWorkspaceReviewResponseEntityContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(prepareWorkspaceReviewResponseEntityContentPrerequisitesMax),
+  "cautions": zod.string().max(prepareWorkspaceReviewResponseEntityContentCautionsMax),
+  "alternatives": zod.string().max(prepareWorkspaceReviewResponseEntityContentAlternativesMax),
+  "validationQuestions": zod.string().max(prepareWorkspaceReviewResponseEntityContentValidationQuestionsMax),
+  "mitigation": zod.string().max(prepareWorkspaceReviewResponseEntityContentMitigationMax),
+  "mitigationValidation": zod.string().max(prepareWorkspaceReviewResponseEntityContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "sources": zod.array(zod.record(zod.string(), zod.unknown())),
+  "version": zod.int(),
+  "state": zod.enum(['Draft', 'Submitted', 'Approved', 'Changes requested']),
+  "submitter_id": zod.string().nullish(),
+  "reviewer_id": zod.string().nullish()
+})
+})
+
+
+export const SharedAssessmentAdministrationResponse = zod.unknown()
+
+
+export const GetSharedAssessmentParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const getSharedAssessmentResponseEntitiesItemContentClassificationExplanationMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentNarrativeMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentRecommendationMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentRecommendationRationaleMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentPrerequisitesMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentCautionsMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentAlternativesMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentValidationQuestionsMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentMitigationMax = 20000;
+
+export const getSharedAssessmentResponseEntitiesItemContentMitigationValidationMax = 20000;
+
+
+
+export const GetSharedAssessmentResponse = zod.object({
+  "assessment": zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "system": zod.string(),
+  "target_release": zod.string(),
+  "owner_id": zod.string(),
+  "access": zod.enum(['edit', 'review', 'read']).optional(),
+  "count": zod.string().optional()
+}),
+  "entities": zod.array(zod.object({
+  "id": zod.uuid(),
+  "assessment_id": zod.uuid(),
+  "entity_key": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(getSharedAssessmentResponseEntitiesItemContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(getSharedAssessmentResponseEntitiesItemContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(getSharedAssessmentResponseEntitiesItemContentRecommendationMax),
+  "recommendationRationale": zod.string().max(getSharedAssessmentResponseEntitiesItemContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(getSharedAssessmentResponseEntitiesItemContentPrerequisitesMax),
+  "cautions": zod.string().max(getSharedAssessmentResponseEntitiesItemContentCautionsMax),
+  "alternatives": zod.string().max(getSharedAssessmentResponseEntitiesItemContentAlternativesMax),
+  "validationQuestions": zod.string().max(getSharedAssessmentResponseEntitiesItemContentValidationQuestionsMax),
+  "mitigation": zod.string().max(getSharedAssessmentResponseEntitiesItemContentMitigationMax),
+  "mitigationValidation": zod.string().max(getSharedAssessmentResponseEntitiesItemContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "sources": zod.array(zod.record(zod.string(), zod.unknown())),
+  "version": zod.int(),
+  "state": zod.enum(['Draft', 'Submitted', 'Approved', 'Changes requested']),
+  "submitter_id": zod.string().nullish(),
+  "reviewer_id": zod.string().nullish()
+})),
+  "members": zod.array(zod.record(zod.string(), zod.unknown())),
+  "events": zod.array(zod.record(zod.string(), zod.unknown()))
+})
+
+
+export const UpdateSharedMembershipParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const updateSharedMembershipBodyUserIdMax = 200;
+
+
+
+export const UpdateSharedMembershipBody = zod.object({
+  "userId": zod.string().min(1).max(updateSharedMembershipBodyUserIdMax),
+  "access": zod.union([zod.literal('read'),zod.literal('edit'),zod.literal('review'),zod.literal(null)]).nullable()
+})
+
+export const UpdateSharedMembershipResponse = zod.unknown()
+
+
+export const SaveSharedEntityParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+export const saveSharedEntityBodyContentClassificationExplanationMax = 20000;
+
+export const saveSharedEntityBodyContentNarrativeMax = 20000;
+
+export const saveSharedEntityBodyContentRecommendationMax = 20000;
+
+export const saveSharedEntityBodyContentRecommendationRationaleMax = 20000;
+
+export const saveSharedEntityBodyContentPrerequisitesMax = 20000;
+
+export const saveSharedEntityBodyContentCautionsMax = 20000;
+
+export const saveSharedEntityBodyContentAlternativesMax = 20000;
+
+export const saveSharedEntityBodyContentValidationQuestionsMax = 20000;
+
+export const saveSharedEntityBodyContentMitigationMax = 20000;
+
+export const saveSharedEntityBodyContentMitigationValidationMax = 20000;
+
+
+
+export const SaveSharedEntityBody = zod.object({
+  "expectedVersion": zod.int().min(1),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(saveSharedEntityBodyContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(saveSharedEntityBodyContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(saveSharedEntityBodyContentRecommendationMax),
+  "recommendationRationale": zod.string().max(saveSharedEntityBodyContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(saveSharedEntityBodyContentPrerequisitesMax),
+  "cautions": zod.string().max(saveSharedEntityBodyContentCautionsMax),
+  "alternatives": zod.string().max(saveSharedEntityBodyContentAlternativesMax),
+  "validationQuestions": zod.string().max(saveSharedEntityBodyContentValidationQuestionsMax),
+  "mitigation": zod.string().max(saveSharedEntityBodyContentMitigationMax),
+  "mitigationValidation": zod.string().max(saveSharedEntityBodyContentMitigationValidationMax)
+})
+})
+
+export const saveSharedEntityResponseEntityContentClassificationExplanationMax = 20000;
+
+export const saveSharedEntityResponseEntityContentNarrativeMax = 20000;
+
+export const saveSharedEntityResponseEntityContentRecommendationMax = 20000;
+
+export const saveSharedEntityResponseEntityContentRecommendationRationaleMax = 20000;
+
+export const saveSharedEntityResponseEntityContentPrerequisitesMax = 20000;
+
+export const saveSharedEntityResponseEntityContentCautionsMax = 20000;
+
+export const saveSharedEntityResponseEntityContentAlternativesMax = 20000;
+
+export const saveSharedEntityResponseEntityContentValidationQuestionsMax = 20000;
+
+export const saveSharedEntityResponseEntityContentMitigationMax = 20000;
+
+export const saveSharedEntityResponseEntityContentMitigationValidationMax = 20000;
+
+
+
+export const SaveSharedEntityResponse = zod.object({
+  "entity": zod.object({
+  "id": zod.uuid(),
+  "assessment_id": zod.uuid(),
+  "entity_key": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(saveSharedEntityResponseEntityContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(saveSharedEntityResponseEntityContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(saveSharedEntityResponseEntityContentRecommendationMax),
+  "recommendationRationale": zod.string().max(saveSharedEntityResponseEntityContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(saveSharedEntityResponseEntityContentPrerequisitesMax),
+  "cautions": zod.string().max(saveSharedEntityResponseEntityContentCautionsMax),
+  "alternatives": zod.string().max(saveSharedEntityResponseEntityContentAlternativesMax),
+  "validationQuestions": zod.string().max(saveSharedEntityResponseEntityContentValidationQuestionsMax),
+  "mitigation": zod.string().max(saveSharedEntityResponseEntityContentMitigationMax),
+  "mitigationValidation": zod.string().max(saveSharedEntityResponseEntityContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "sources": zod.array(zod.record(zod.string(), zod.unknown())),
+  "version": zod.int(),
+  "state": zod.enum(['Draft', 'Submitted', 'Approved', 'Changes requested']),
+  "submitter_id": zod.string().nullish(),
+  "reviewer_id": zod.string().nullish()
+})
+})
+
+
+export const SharedReviewActionParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+export const sharedReviewActionBodyCommentDefault = ``;
+export const sharedReviewActionBodyCommentMax = 20000;
+
+
+
+export const SharedReviewActionBody = zod.object({
+  "expectedVersion": zod.int().min(1),
+  "action": zod.enum(['submit', 'approve', 'request-changes']),
+  "requestId": zod.uuid(),
+  "comment": zod.string().max(sharedReviewActionBodyCommentMax).default(sharedReviewActionBodyCommentDefault)
+})
+
+export const sharedReviewActionResponseEntityContentClassificationExplanationMax = 20000;
+
+export const sharedReviewActionResponseEntityContentNarrativeMax = 20000;
+
+export const sharedReviewActionResponseEntityContentRecommendationMax = 20000;
+
+export const sharedReviewActionResponseEntityContentRecommendationRationaleMax = 20000;
+
+export const sharedReviewActionResponseEntityContentPrerequisitesMax = 20000;
+
+export const sharedReviewActionResponseEntityContentCautionsMax = 20000;
+
+export const sharedReviewActionResponseEntityContentAlternativesMax = 20000;
+
+export const sharedReviewActionResponseEntityContentValidationQuestionsMax = 20000;
+
+export const sharedReviewActionResponseEntityContentMitigationMax = 20000;
+
+export const sharedReviewActionResponseEntityContentMitigationValidationMax = 20000;
+
+
+
+export const SharedReviewActionResponse = zod.object({
+  "entity": zod.object({
+  "id": zod.uuid(),
+  "assessment_id": zod.uuid(),
+  "entity_key": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(sharedReviewActionResponseEntityContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(sharedReviewActionResponseEntityContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(sharedReviewActionResponseEntityContentRecommendationMax),
+  "recommendationRationale": zod.string().max(sharedReviewActionResponseEntityContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(sharedReviewActionResponseEntityContentPrerequisitesMax),
+  "cautions": zod.string().max(sharedReviewActionResponseEntityContentCautionsMax),
+  "alternatives": zod.string().max(sharedReviewActionResponseEntityContentAlternativesMax),
+  "validationQuestions": zod.string().max(sharedReviewActionResponseEntityContentValidationQuestionsMax),
+  "mitigation": zod.string().max(sharedReviewActionResponseEntityContentMitigationMax),
+  "mitigationValidation": zod.string().max(sharedReviewActionResponseEntityContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "sources": zod.array(zod.record(zod.string(), zod.unknown())),
+  "version": zod.int(),
+  "state": zod.enum(['Draft', 'Submitted', 'Approved', 'Changes requested']),
+  "submitter_id": zod.string().nullish(),
+  "reviewer_id": zod.string().nullish()
+})
+})
+
+
+export const AssignSharedReviewerParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+export const assignSharedReviewerBodyReviewerIdMax = 200;
+
+
+
+export const AssignSharedReviewerBody = zod.object({
+  "expectedVersion": zod.int().min(1),
+  "reviewerId": zod.string().min(1).max(assignSharedReviewerBodyReviewerIdMax)
+})
+
+export const assignSharedReviewerResponseEntityContentClassificationExplanationMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentNarrativeMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentRecommendationMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentRecommendationRationaleMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentPrerequisitesMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentCautionsMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentAlternativesMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentValidationQuestionsMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentMitigationMax = 20000;
+
+export const assignSharedReviewerResponseEntityContentMitigationValidationMax = 20000;
+
+
+
+export const AssignSharedReviewerResponse = zod.object({
+  "entity": zod.object({
+  "id": zod.uuid(),
+  "assessment_id": zod.uuid(),
+  "entity_key": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "content": zod.object({
+  "classification": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullable(),
+  "classificationExplanation": zod.string().max(assignSharedReviewerResponseEntityContentClassificationExplanationMax),
+  "disposition": zod.union([zod.literal('keep'),zod.literal('retire'),zod.literal('refactor'),zod.literal('redesign'),zod.literal('move-to-btp'),zod.literal(null)]).nullable(),
+  "narrative": zod.string().max(assignSharedReviewerResponseEntityContentNarrativeMax),
+  "complexitySize": zod.union([zod.literal('XS'),zod.literal('S'),zod.literal('M'),zod.literal('L'),zod.literal('XL'),zod.literal('XXL'),zod.literal(null)]).nullable(),
+  "recommendation": zod.string().max(assignSharedReviewerResponseEntityContentRecommendationMax),
+  "recommendationRationale": zod.string().max(assignSharedReviewerResponseEntityContentRecommendationRationaleMax),
+  "prerequisites": zod.string().max(assignSharedReviewerResponseEntityContentPrerequisitesMax),
+  "cautions": zod.string().max(assignSharedReviewerResponseEntityContentCautionsMax),
+  "alternatives": zod.string().max(assignSharedReviewerResponseEntityContentAlternativesMax),
+  "validationQuestions": zod.string().max(assignSharedReviewerResponseEntityContentValidationQuestionsMax),
+  "mitigation": zod.string().max(assignSharedReviewerResponseEntityContentMitigationMax),
+  "mitigationValidation": zod.string().max(assignSharedReviewerResponseEntityContentMitigationValidationMax)
+}),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "sources": zod.array(zod.record(zod.string(), zod.unknown())),
+  "version": zod.int(),
+  "state": zod.enum(['Draft', 'Submitted', 'Approved', 'Changes requested']),
+  "submitter_id": zod.string().nullish(),
+  "reviewer_id": zod.string().nullish()
+})
+})
+
+
+export const SharedGithubStatusResponse = zod.unknown()
+
+
+export const ConnectSharedGithubResponse = zod.unknown()
+
+
+export const DisconnectSharedGithubResponse = zod.unknown()
+
+
+export const sharedGithubFilesQueryRepositoryMax = 200;
+
+export const sharedGithubFilesQueryRefMax = 200;
+
+
+
+export const SharedGithubFilesQueryParams = zod.object({
+  "repository": zod.coerce.string().max(sharedGithubFilesQueryRepositoryMax),
+  "ref": zod.coerce.string().max(sharedGithubFilesQueryRefMax)
+})
+
+export const SharedGithubFilesResponse = zod.unknown()
+
+
+export const MapSharedGithubSourceParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+export const mapSharedGithubSourceBodyRepositoryMax = 200;
+
+export const mapSharedGithubSourceBodyCommitRegExp = new RegExp('^[0-9a-f]{40}$');
+export const mapSharedGithubSourceBodyPathMax = 1000;
+
+
+
+export const MapSharedGithubSourceBody = zod.object({
+  "expectedVersion": zod.int().min(1),
+  "repository": zod.string().max(mapSharedGithubSourceBodyRepositoryMax),
+  "commit": zod.string().regex(mapSharedGithubSourceBodyCommitRegExp),
+  "path": zod.string().min(1).max(mapSharedGithubSourceBodyPathMax)
+})
+
+export const MapSharedGithubSourceResponse = zod.unknown()
+
+
+export const readSharedSourcePathIndexMin = 0;
+export const readSharedSourcePathIndexMax = 9;
+
+
+
+export const ReadSharedSourceParams = zod.object({
+  "id": zod.uuid(),
+  "index": zod.coerce.number().int().min(readSharedSourcePathIndexMin).max(readSharedSourcePathIndexMax)
+})
+
+export const ReadSharedSourceResponse = zod.unknown()
+
+
+export const EvaluateSharedSourceParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+
+
+export const EvaluateSharedSourceBody = zod.object({
+  "expectedVersion": zod.int().min(1)
+})
+
+export const EvaluateSharedSourceResponse = zod.unknown()
+
+
+export const ListCompanyTemplatesResponse = zod.unknown()
+
+
+export const uploadCompanyTemplateBodyNameMax = 120;
+
+
+
+
+export const UploadCompanyTemplateBody = zod.object({
+  "name": zod.string().min(1).max(uploadCompanyTemplateBodyNameMax),
+  "file": zod.instanceof(Blob),
+  "replaceId": zod.uuid().optional(),
+  "expectedVersion": zod.int().min(1).optional()
+})
+
+export const UploadCompanyTemplateResponse = zod.unknown()
+
+
+export const PreviewCompanyTemplateParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+
+
+export const PreviewCompanyTemplateBody = zod.object({
+  "expectedVersion": zod.int().min(1)
+})
+
+export const PreviewCompanyTemplateResponse = zod.unknown()
+
+
+export const SelectCompanyTemplateParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+
+
+export const SelectCompanyTemplateBody = zod.object({
+  "expectedVersion": zod.int().min(1)
+})
+
+export const SelectCompanyTemplateResponse = zod.unknown()
+
+
+export const listSharedApprovalsQueryLimitDefault = 50;
+export const listSharedApprovalsQueryLimitMax = 100;
+
+export const listSharedApprovalsQueryCursorMax = 4096;
+
+export const listSharedApprovalsQuerySearchMax = 200;
+
+export const listSharedApprovalsQueryKindDefault = `all`;
+export const listSharedApprovalsQueryShowSupersededDefault = `false`;
+
+export const ListSharedApprovalsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(listSharedApprovalsQueryLimitMax).default(listSharedApprovalsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(listSharedApprovalsQueryCursorMax).optional(),
+  "search": zod.coerce.string().max(listSharedApprovalsQuerySearchMax).optional(),
+  "kind": zod.enum(['all', 'object', 'interface']).default(listSharedApprovalsQueryKindDefault),
+  "showSuperseded": zod.enum(['true', 'false']).default(listSharedApprovalsQueryShowSupersededDefault)
+})
+
+export const ListSharedApprovalsResponse = zod.object({
+  "approvals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "entity_id": zod.uuid(),
+  "version": zod.int(),
+  "approver": zod.string(),
+  "approved_at": zod.string(),
+  "kind": zod.enum(['object', 'interface']),
+  "name": zod.string(),
+  "assessment_id": zod.uuid(),
+  "assessment_name": zod.string(),
+  "superseded": zod.boolean(),
+  "template_name": zod.string().nullable(),
+  "template_version": zod.int().nullable()
+})),
+  "pageCursor": zod.string().nullable(),
+  "nextCursor": zod.string().nullable()
+})
+
+
+export const downloadSharedApprovalsBodyIdsMax = 50;
+
+
+
+export const DownloadSharedApprovalsBody = zod.object({
+  "ids": zod.array(zod.uuid()).min(1).max(downloadSharedApprovalsBodyIdsMax)
+})
+
+export const DownloadSharedApprovalsResponse = zod.unknown()
+
+
 export const GetKnowledgeCleanupResponse = zod.object({
   "report": zod.union([zod.object({
   "dryRun": zod.boolean(),
   "startedAt": zod.string(),
-  "expiredUploads": zod.number().int(),
-  "scanned": zod.number().int(),
-  "candidates": zod.number().int(),
-  "deleted": zod.number().int(),
-  "protected": zod.number().int(),
-  "failures": zod.number().int(),
+  "expiredUploads": zod.int(),
+  "scanned": zod.int(),
+  "candidates": zod.int(),
+  "deleted": zod.int(),
+  "protected": zod.int(),
+  "failures": zod.int(),
   "hasMore": zod.boolean()
 }),zod.null()])
 })
@@ -30,12 +871,12 @@ export const RunKnowledgeCleanupBody = zod.object({
 export const RunKnowledgeCleanupResponse = zod.object({
   "dryRun": zod.boolean(),
   "startedAt": zod.string(),
-  "expiredUploads": zod.number().int(),
-  "scanned": zod.number().int(),
-  "candidates": zod.number().int(),
-  "deleted": zod.number().int(),
-  "protected": zod.number().int(),
-  "failures": zod.number().int(),
+  "expiredUploads": zod.int(),
+  "scanned": zod.int(),
+  "candidates": zod.int(),
+  "deleted": zod.int(),
+  "protected": zod.int(),
+  "failures": zod.int(),
   "hasMore": zod.boolean()
 })
 
@@ -46,7 +887,7 @@ export const ListReportTemplatesResponse = zod.object({
   "templates": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "version": zod.number().int(),
+  "version": zod.int(),
   "active": zod.boolean(),
   "previewed": zod.boolean()
 }))
@@ -68,8 +909,8 @@ export const startWordTemplateUploadBodyFilenameRegExp = new RegExp('\\.docx$');
 export const StartWordTemplateUploadBody = zod.object({
   "name": zod.string().min(1).max(startWordTemplateUploadBodyNameMax),
   "filename": zod.string().regex(startWordTemplateUploadBodyFilenameRegExp),
-  "replaceId": zod.string().uuid().optional(),
-  "expectedVersion": zod.number().int().min(1).optional()
+  "replaceId": zod.uuid().optional(),
+  "expectedVersion": zod.int().min(1).optional()
 })
 
 export const StartWordTemplateUploadResponse = zod.object({
@@ -79,20 +920,20 @@ export const StartWordTemplateUploadResponse = zod.object({
 
 
 export const ValidateWordTemplateUploadParams = zod.object({
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 export const ValidateWordTemplateUploadResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "version": zod.number().int(),
+  "version": zod.int(),
   "active": zod.boolean(),
   "previewed": zod.boolean()
 })
 
 
 export const UpdateWordTemplateParams = zod.object({
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 
@@ -101,7 +942,7 @@ export const updateWordTemplateBodyNameMax = 100;
 
 
 export const UpdateWordTemplateBody = zod.object({
-  "expectedVersion": zod.number().int().min(1),
+  "expectedVersion": zod.int().min(1),
   "name": zod.string().min(1).max(updateWordTemplateBodyNameMax).optional(),
   "active": zod.literal(true).optional()
 })
@@ -109,21 +950,21 @@ export const UpdateWordTemplateBody = zod.object({
 export const UpdateWordTemplateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "version": zod.number().int(),
+  "version": zod.int(),
   "active": zod.boolean(),
   "previewed": zod.boolean()
 })
 
 
 export const DeleteWordTemplateParams = zod.object({
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 
 
 
 export const DeleteWordTemplateBody = zod.object({
-  "expectedVersion": zod.number().int().min(1)
+  "expectedVersion": zod.int().min(1)
 })
 
 export const DeleteWordTemplateResponse = zod.void()
@@ -134,7 +975,7 @@ export const DeleteWordTemplateResponse = zod.void()
 
 export const PreviewWordTemplateBody = zod.object({
   "templateId": zod.string(),
-  "expectedVersion": zod.number().int().min(1).optional()
+  "expectedVersion": zod.int().min(1).optional()
 })
 
 export const PreviewWordTemplateResponse = zod.unknown()
@@ -163,6 +1004,7 @@ export const RenderWordReportsBody = zod.object({
   "target_system": zod.string().optional(),
   "target_release": zod.string().optional(),
   "classification": zod.string().optional(),
+  "complexity": zod.string().optional(),
   "severity": zod.string().optional(),
   "rationale": zod.string().optional(),
   "mitigation": zod.string().optional(),
@@ -198,7 +1040,7 @@ export const ListKnowledgeResponse = zod.object({
   "release": zod.string(),
   "topics": zod.array(zod.string()),
   "filename": zod.string(),
-  "version": zod.number().int(),
+  "version": zod.int(),
   "status": zod.enum(['awaiting-upload', 'processing', 'ready', 'failed']),
   "error": zod.string().nullable(),
   "createdAt": zod.string()
@@ -228,9 +1070,9 @@ export const StartKnowledgeUploadBody = zod.object({
   "release": zod.string().min(1).max(startKnowledgeUploadBodyReleaseMax),
   "topics": zod.array(zod.string().min(1).max(startKnowledgeUploadBodyTopicsItemMax)).max(startKnowledgeUploadBodyTopicsMax),
   "filename": zod.string().min(1).max(startKnowledgeUploadBodyFilenameMax),
-  "size": zod.number().int().min(1).max(startKnowledgeUploadBodySizeMax),
-  "replaceId": zod.string().uuid().optional(),
-  "expectedVersion": zod.number().int().min(1).optional()
+  "size": zod.int().min(1).max(startKnowledgeUploadBodySizeMax),
+  "replaceId": zod.uuid().optional(),
+  "expectedVersion": zod.int().min(1).optional()
 })
 
 export const StartKnowledgeUploadResponse = zod.object({
@@ -240,7 +1082,7 @@ export const StartKnowledgeUploadResponse = zod.object({
 
 
 export const GetKnowledgeDocumentParams = zod.object({
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 export const getKnowledgeDocumentResponseTwoPassagesItemSectionMax = 160;
@@ -256,7 +1098,7 @@ export const GetKnowledgeDocumentResponse = zod.object({
   "release": zod.string(),
   "topics": zod.array(zod.string()),
   "filename": zod.string(),
-  "version": zod.number().int(),
+  "version": zod.int(),
   "status": zod.enum(['awaiting-upload', 'processing', 'ready', 'failed']),
   "error": zod.string().nullable(),
   "createdAt": zod.string()
@@ -270,21 +1112,21 @@ export const GetKnowledgeDocumentResponse = zod.object({
 
 
 export const RemoveKnowledgeDocumentParams = zod.object({
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 
 
 
 export const RemoveKnowledgeDocumentBody = zod.object({
-  "expectedVersion": zod.number().int().min(1)
+  "expectedVersion": zod.int().min(1)
 })
 
 export const RemoveKnowledgeDocumentResponse = zod.void()
 
 
 export const ProcessKnowledgeUploadParams = zod.object({
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 export const ProcessKnowledgeUploadResponse = zod.object({
@@ -294,7 +1136,7 @@ export const ProcessKnowledgeUploadResponse = zod.object({
   "release": zod.string(),
   "topics": zod.array(zod.string()),
   "filename": zod.string(),
-  "version": zod.number().int(),
+  "version": zod.int(),
   "status": zod.enum(['awaiting-upload', 'processing', 'ready', 'failed']),
   "error": zod.string().nullable(),
   "createdAt": zod.string()
@@ -305,7 +1147,7 @@ export const ProcessKnowledgeUploadResponse = zod.object({
 
 
 export const DownloadKnowledgeFileParams = zod.object({
-  "id": zod.coerce.string().uuid(),
+  "id": zod.uuid(),
   "version": zod.coerce.number().int().min(1)
 })
 
@@ -360,9 +1202,9 @@ export const PreviewAssessmentExplanationResponse = zod.object({
   "mode": zod.enum(['knowledge-only', 'allow-fallback'])
 }).and(zod.object({
   "references": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "title": zod.string().max(previewAssessmentExplanationResponsePayloadTwoReferencesItemOneTitleMax),
-  "version": zod.number().int().min(1),
+  "version": zod.int().min(1),
   "section": zod.string().max(previewAssessmentExplanationResponsePayloadTwoReferencesItemOneSectionMax),
   "release": zod.string().max(previewAssessmentExplanationResponsePayloadTwoReferencesItemOneReleaseMax),
   "applicability": zod.enum(['target-release', 'general', 'other-release'])
@@ -376,11 +1218,11 @@ export const PreviewAssessmentExplanationResponse = zod.object({
   "diagnostics": zod.object({
   "terms": zod.array(zod.string()),
   "targetRelease": zod.string(),
-  "requiredTermMatches": zod.number().int(),
-  "candidateLimit": zod.number().int(),
-  "matchingPassages": zod.number().int(),
-  "applicableCharacters": zod.number().int(),
-  "requiredCharacters": zod.number().int(),
+  "requiredTermMatches": zod.int(),
+  "candidateLimit": zod.int(),
+  "matchingPassages": zod.int(),
+  "applicableCharacters": zod.int(),
+  "requiredCharacters": zod.int(),
   "candidates": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -415,7 +1257,7 @@ export const ListAccountAuditResponse = zod.object({
   "action": zod.enum(['bootstrap', 'user_created', 'user_updated', 'role_changed', 'permissions_changed', 'user_activated', 'user_deactivated', 'password_reset', 'password_changed', 'login', 'login_failed', 'logout']),
   "createdAt": zod.coerce.date()
 })),
-  "page": zod.number().int(),
+  "page": zod.int(),
   "hasMore": zod.boolean()
 })
 
@@ -572,7 +1414,7 @@ export const ReviewCleanCoreDemoResponse = zod.object({
   "evidence": zod.array(zod.object({
   "type": zod.enum(['atc', 'cloud-readiness', 'custom-code', 'usage', 'modifications', 'enhancements', 'object-metadata', 'interfaces', 'readiness-check', 'cloud-alm', 'process-data']),
   "fileName": zod.string().optional(),
-  "count": zod.number().int().optional(),
+  "count": zod.int().optional(),
   "rows": zod.array(zod.record(zod.string(), zod.unknown())),
   "metadata": zod.record(zod.string(), zod.unknown()),
   "attestation": zod.string()
@@ -588,17 +1430,17 @@ export const GetAiLimiterHealthResponse = zod.object({
   "mode": zod.enum(['local', 'redis-rest', 'invalid']),
   "available": zod.boolean(),
   "checkedAt": zod.string(),
-  "cacheTtlMs": zod.number().int(),
+  "cacheTtlMs": zod.int(),
   "metrics": zod.object({
-  "probeChecks": zod.number().int(),
-  "probeFailures": zod.number().int(),
-  "acquisitions": zod.number().int(),
-  "admitted": zod.number().int(),
-  "rejections": zod.number().int(),
-  "acquisitionFailures": zod.number().int(),
+  "probeChecks": zod.int(),
+  "probeFailures": zod.int(),
+  "acquisitions": zod.int(),
+  "admitted": zod.int(),
+  "rejections": zod.int(),
+  "acquisitionFailures": zod.int(),
   "acquisitionLatencyMsTotal": zod.number(),
   "acquisitionLatencyMsMax": zod.number(),
-  "releaseFailures": zod.number().int()
+  "releaseFailures": zod.int()
 })
 })
 
@@ -652,9 +1494,9 @@ export const ExplainAssessmentResponse = zod.object({
   "model": zod.string(),
   "generatedAt": zod.string(),
   "sources": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "title": zod.string().max(explainAssessmentResponseSourcesItemTitleMax),
-  "version": zod.number().int().min(1),
+  "version": zod.int().min(1),
   "section": zod.string().max(explainAssessmentResponseSourcesItemSectionMax),
   "release": zod.string().max(explainAssessmentResponseSourcesItemReleaseMax),
   "applicability": zod.enum(['target-release', 'general', 'other-release'])
@@ -680,7 +1522,7 @@ export const LoadCleanCoreDemoResponse = zod.object({
   "evidence": zod.array(zod.object({
   "type": zod.enum(['atc', 'cloud-readiness', 'custom-code', 'usage', 'modifications', 'enhancements', 'object-metadata', 'interfaces', 'readiness-check', 'cloud-alm', 'process-data']),
   "fileName": zod.string().optional(),
-  "count": zod.number().int().optional(),
+  "count": zod.int().optional(),
   "rows": zod.array(zod.record(zod.string(), zod.unknown())),
   "metadata": zod.record(zod.string(), zod.unknown()),
   "attestation": zod.string()
@@ -714,7 +1556,7 @@ export const RunCleanCoreAssessmentBody = zod.object({
   "evidence": zod.array(zod.object({
   "type": zod.enum(['atc', 'cloud-readiness', 'custom-code', 'usage', 'modifications', 'enhancements', 'object-metadata', 'interfaces', 'readiness-check', 'cloud-alm', 'process-data']),
   "fileName": zod.string().optional(),
-  "count": zod.number().int().optional(),
+  "count": zod.int().optional(),
   "rows": zod.array(zod.record(zod.string(), zod.unknown())),
   "metadata": zod.record(zod.string(), zod.unknown()),
   "attestation": zod.string()
@@ -739,7 +1581,7 @@ export const UploadCleanCoreEvidenceBody = zod.object({
 export const UploadCleanCoreEvidenceResponse = zod.object({
   "type": zod.enum(['atc', 'cloud-readiness', 'custom-code', 'usage', 'modifications', 'enhancements', 'object-metadata', 'interfaces', 'readiness-check', 'cloud-alm', 'process-data']),
   "fileName": zod.string().optional(),
-  "count": zod.number().int().optional(),
+  "count": zod.int().optional(),
   "rows": zod.array(zod.record(zod.string(), zod.unknown())),
   "metadata": zod.record(zod.string(), zod.unknown()),
   "attestation": zod.string()

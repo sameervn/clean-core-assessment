@@ -102,7 +102,8 @@ export default function ReportTemplatesPage() {
     );
   }
 
-  const templates = list.data?.templates ?? [];
+  // Company templates are managed in the Export Center; private routes never act on them.
+  const templates = (list.data?.templates ?? []).filter(t => !t.company);
   return (
     <Shell onBack={() => navigate("/")}>
       <main className="mx-auto grid max-w-6xl gap-6 p-4 md:p-8 lg:grid-cols-[1fr_340px]">
@@ -120,7 +121,7 @@ export default function ReportTemplatesPage() {
             </div>
           </div>
           {list.data && !list.data.configured && <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" data-testid="status-templates-unconfigured">Template storage is not configured on the server. Uploads are unavailable until an administrator configures it.</p>}
-          {list.data && list.data.configured && !list.data.activeId && templates.length > 0 && <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700" data-testid="status-no-default">No default template. Users must choose a template explicitly when exporting.</p>}
+          {list.data && list.data.configured && !templates.some(t => t.active) && templates.length > 0 && <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700" data-testid="status-no-default">No private default template. Users must choose a template explicitly when exporting.</p>}
 
           {list.isLoading ? (
             <div className="space-y-2">{[0, 1, 2].map(i => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}</div>

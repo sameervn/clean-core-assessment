@@ -129,7 +129,7 @@ function WordExportDialog({ ctx, selection, scopeLabel, onClose }: { ctx: any; s
                 <Select value={templateId} onValueChange={setTemplateId} disabled={busy}>
                   <SelectTrigger data-testid="select-template"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                   <SelectContent>
-                    {list.templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name} · v{t.version}{t.active ? " (default)" : ""}</SelectItem>)}
+                    {list.templates.map(t => <SelectItem key={t.id} value={t.id}>{t.company ? "Company: " : ""}{t.name} · v{t.version}{t.active ? " (default)" : ""}</SelectItem>)}
                     <SelectItem value={SAMPLE_TEMPLATE_ID}>Built-in sample template (not your organisation's)</SelectItem>
                   </SelectContent>
                 </Select>

@@ -6,7 +6,7 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
-  {{- if eq .Values.config.CC_KNOWLEDGE_STORAGE "local" }}
+  {{- if or (eq .Values.config.CC_KNOWLEDGE_STORAGE "local") (eq (default "local" .Values.config.CC_HTTP_LIMITER) "local") }}
   strategy: { type: Recreate }
   {{- end }}
   selector:

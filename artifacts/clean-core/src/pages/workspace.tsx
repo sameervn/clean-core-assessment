@@ -78,6 +78,7 @@ function useLogoutWithFeedback() {
 
 function NoAccess() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const logout = useLogoutWithFeedback();
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#f3f6f9] p-6">
@@ -85,6 +86,7 @@ function NoAccess() {
         <ShieldCheck className="mx-auto h-8 w-8 text-slate-400" />
         <h1 className="text-lg font-semibold">No assessment access</h1>
         <p className="text-sm text-muted-foreground">{user?.username} is signed in but does not have the view permission. Ask an administrator to grant it.</p>
+        <Button variant="outline" onClick={() => navigate("/shared-assessments?tab=inbox")} data-testid="button-open-inbox">Open reviewer inbox</Button>
         <Button variant="outline" onClick={() => void logout()} data-testid="button-logout"><LogOut className="mr-2 h-4 w-4" /> Sign out</Button>
       </div>
     </div>
@@ -152,6 +154,8 @@ function AccountMenu({ onOpenReadOnly }: { onOpenReadOnly: (ws: StoredWorkspace,
           <DropdownMenuSeparator />
           {(can as (p: string) => boolean)("knowledge.read") && <DropdownMenuItem onSelect={() => navigate("/knowledge")} data-testid="menu-knowledge"><Library className="mr-2 h-4 w-4" /> Knowledge base</DropdownMenuItem>}
           {(can as (p: string) => boolean)("templates.manage") && <DropdownMenuItem onSelect={() => navigate("/report-templates")} data-testid="menu-report-templates"><FileText className="mr-2 h-4 w-4" /> Word report templates</DropdownMenuItem>}
+          <DropdownMenuItem onSelect={() => navigate("/shared-assessments")} data-testid="menu-shared-assessments"><Users className="mr-2 h-4 w-4" /> Shared assessments</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => navigate("/shared-assessments?tab=inbox")} data-testid="menu-reviewer-inbox"><ShieldCheck className="mr-2 h-4 w-4" /> Reviewer inbox</DropdownMenuItem>
           {isAdmin && <DropdownMenuItem onSelect={() => navigate("/admin")} data-testid="menu-manage-users"><Users className="mr-2 h-4 w-4" /> Users &amp; permissions</DropdownMenuItem>}
           <DropdownMenuItem onSelect={() => navigate("/account/password")} data-testid="menu-change-password"><KeyRound className="mr-2 h-4 w-4" /> Change password</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void logout()} className="text-destructive focus:text-destructive" data-testid="menu-logout"><LogOut className="mr-2 h-4 w-4" /> Sign out</DropdownMenuItem>

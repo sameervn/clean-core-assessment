@@ -34,7 +34,7 @@ test("real private template lifecycle, ownership, permissions, restart persisten
     assert.equal((await request("/uploads", "POST", { name: "Forbidden", filename: "test.docx" }, 2)).status, 403);
     const upload = async (body: any, bytes = sample()) => {
       const ticket = await json(await request("/uploads", "POST", body));
-      const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: new Uint8Array(bytes) });
+      const uploadResponse = await fetch(new URL(ticket.uploadUrl, base), { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: new Uint8Array(bytes) });
       assert.equal(uploadResponse.ok, true, "Direct private upload should work");
       paths.add((await pool.query("SELECT object_path FROM cc_report_templates WHERE id=$1", [ticket.id])).rows[0].object_path);
       const processed = await request(`/uploads/${ticket.id}/process`, "POST", {});
@@ -56,8 +56,10 @@ test("real private template lifecycle, ownership, permissions, restart persisten
     await json(await request(`/${template.id}`, "PATCH", { expectedVersion: 1, active: true }));
     await initializeReports(); // Idempotent reinitialization cannot discard durable selection.
     const persisted = await json(await request("/"));
-    assert.equal(persisted.activeId, template.id);
-    assert.equal((await json(await request("/", "GET", undefined, 1))).templates.length, 0);
+    assert.equal(persisted.templates.find((row: any) => row.id === template.id)?.active, true);
+    // A company default intentionally takes precedence over personal selection.
+    assert.equal(persisted.activeId, persisted.templates.find((row: any) => row.company && row.active)?.id ?? template.id);
+    assert.equal((await json(await request("/", "GET", undefined, 1))).templates.filter((row: any) => !row.company).length, 0);
     const bulk = await request("/render", "POST", { templateId: template.id, entities: [example, { ...example, entity_kind: "interface" }, { ...example, entity_id: "second" }] });
     assert.equal(bulk.status, 200);
     assert.equal(Object.keys(new PizZip(Buffer.from(await bulk.arrayBuffer())).files).length, 2);
@@ -75,7 +77,7 @@ test("real private template lifecycle, ownership, permissions, restart persisten
     assert.equal((await request("/preview", "POST", { templateId: template.id })).status, 404);
     const bad = await upload({ name: "Not Word", filename: "bad.docx" }, Buffer.from("fake document"));
     assert.equal(bad.processed.status, 400);
-    assert.equal((await json(await request("/"))).templates.length, 0);
+    assert.equal((await json(await request("/"))).templates.filter((row: any) => !row.company).length, 0);
   } finally {
     const remaining = (await pool.query("SELECT object_path FROM cc_report_templates WHERE owner_id=ANY($1)", [owners])).rows;
     remaining.forEach(r => paths.add(r.object_path));

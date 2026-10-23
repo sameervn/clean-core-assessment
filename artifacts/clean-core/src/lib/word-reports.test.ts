@@ -29,7 +29,7 @@ test("interfaces dedupe to one interface entity with both AI explanations", asyn
   assert.match(e.ai_explanations, /IF NOTE/); assert.match(e.ai_explanations, /OBJ NOTE/);
   assert.equal(e.owner, NOT_PROVIDED); assert.equal(e.target_system, NOT_PROVIDED);
   assert.match(e.evidence, /atc\.csv/); assert.match(e.evidence, /CC-17/); assert.match(e.evidence, /engine 1\.2/);
-  assert.deepEqual(e.recommendations.map(r => r.text), ["Released API", "Alternative: Event mesh"]);
+  assert.deepEqual(e.recommendations.map(r => r.text), ["Released API", "Alternative: Event mesh", "Complexity size: Unassessed"]);
 });
 
 test("objects use assessment system and never stringify objects", async () => {

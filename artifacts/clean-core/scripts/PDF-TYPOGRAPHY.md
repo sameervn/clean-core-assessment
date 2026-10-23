@@ -21,9 +21,10 @@ decode ActualText to ensure that the original logical strings remain present.
 Some PDF readers handle ActualText differently; selection/copy behavior is
 reader-dependent.
 
-For a second rendering engine, optionally run
-`python artifacts/clean-core/scripts/render-pdf-typography.py` with PyMuPDF
-installed from the root Python dependencies.
+The optional PyMuPDF second-engine inspection script was removed because its
+AGPL license does not meet the client's policy. Use the Poppler PNGs and
+ActualText checks above; application PDF evidence uses PDF.js and exports use
+pdf-lib, neither of which depended on that inspection script.
 
 All font assets and HarfBuzz are lazy-loaded by the PDF export. HarfBuzz must
 remain excluded from Vite dependency optimization, otherwise its relative WASM

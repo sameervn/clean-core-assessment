@@ -5,6 +5,429 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ReviewNotification {
+  id: string;
+  assessmentId: string;
+  entityId: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+}
+
+export interface ReviewNotificationPage {
+  notifications: ReviewNotification[];
+  /**
+     * Exclusive cursor for older matching alerts, or null when no more remain. Not an unread total or a snapshot; current access and read state are checked on each request.
+     * @nullable
+     */
+  nextCursor: string | null;
+}
+
+export interface ReviewNotificationPreference {
+  enabled: boolean;
+}
+
+export type ArchivedApprovalKind = typeof ArchivedApprovalKind[keyof typeof ArchivedApprovalKind];
+
+
+export const ArchivedApprovalKind = {
+  object: 'object',
+  interface: 'interface',
+} as const;
+
+export interface ArchivedApproval {
+  id: string;
+  entity_id: string;
+  version: number;
+  approver: string;
+  approved_at: string;
+  kind: ArchivedApprovalKind;
+  name: string;
+  assessment_id: string;
+  assessment_name: string;
+  superseded: boolean;
+  /** @nullable */
+  template_name: string | null;
+  /** @nullable */
+  template_version: number | null;
+}
+
+export interface ApprovalPage {
+  approvals: ArchivedApproval[];
+  /** @nullable */
+  pageCursor: string | null;
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+/**
+ * @nullable
+ */
+export type SharedContentClassification = typeof SharedContentClassification[keyof typeof SharedContentClassification] | null;
+
+
+export const SharedContentClassification = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SharedContentDisposition = typeof SharedContentDisposition[keyof typeof SharedContentDisposition] | null;
+
+
+export const SharedContentDisposition = {
+  keep: 'keep',
+  retire: 'retire',
+  refactor: 'refactor',
+  redesign: 'redesign',
+  'move-to-btp': 'move-to-btp',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SharedContentComplexitySize = typeof SharedContentComplexitySize[keyof typeof SharedContentComplexitySize] | null;
+
+
+export const SharedContentComplexitySize = {
+  XS: 'XS',
+  S: 'S',
+  M: 'M',
+  L: 'L',
+  XL: 'XL',
+  XXL: 'XXL',
+} as const;
+
+export interface SharedContent {
+  /** @nullable */
+  classification: SharedContentClassification;
+  /** @maxLength 20000 */
+  classificationExplanation: string;
+  /** @nullable */
+  disposition: SharedContentDisposition;
+  /** @maxLength 20000 */
+  narrative: string;
+  /** @nullable */
+  complexitySize: SharedContentComplexitySize;
+  /** @maxLength 20000 */
+  recommendation: string;
+  /** @maxLength 20000 */
+  recommendationRationale: string;
+  /** @maxLength 20000 */
+  prerequisites: string;
+  /** @maxLength 20000 */
+  cautions: string;
+  /** @maxLength 20000 */
+  alternatives: string;
+  /** @maxLength 20000 */
+  validationQuestions: string;
+  /** @maxLength 20000 */
+  mitigation: string;
+  /** @maxLength 20000 */
+  mitigationValidation: string;
+}
+
+export type SharedAssessmentAccess = typeof SharedAssessmentAccess[keyof typeof SharedAssessmentAccess];
+
+
+export const SharedAssessmentAccess = {
+  edit: 'edit',
+  review: 'review',
+  read: 'read',
+} as const;
+
+export interface SharedAssessment {
+  id: string;
+  name: string;
+  system: string;
+  target_release: string;
+  owner_id: string;
+  access?: SharedAssessmentAccess;
+  count?: string;
+}
+
+export type SharedEntityKind = typeof SharedEntityKind[keyof typeof SharedEntityKind];
+
+
+export const SharedEntityKind = {
+  object: 'object',
+  interface: 'interface',
+} as const;
+
+export type SharedEntityEvidence = { [key: string]: unknown };
+
+export type SharedEntitySourcesItem = { [key: string]: unknown };
+
+export type SharedEntityState = typeof SharedEntityState[keyof typeof SharedEntityState];
+
+
+export const SharedEntityState = {
+  Draft: 'Draft',
+  Submitted: 'Submitted',
+  Approved: 'Approved',
+  Changes_requested: 'Changes requested',
+} as const;
+
+export interface SharedEntity {
+  id: string;
+  assessment_id: string;
+  entity_key: string;
+  kind: SharedEntityKind;
+  name: string;
+  content: SharedContent;
+  evidence: SharedEntityEvidence;
+  sources: SharedEntitySourcesItem[];
+  version: number;
+  state: SharedEntityState;
+  /** @nullable */
+  submitter_id?: string | null;
+  /** @nullable */
+  reviewer_id?: string | null;
+}
+
+export interface SharedEntityEnvelope {
+  entity: SharedEntity;
+}
+
+export type SharedPublishTargetRelease = typeof SharedPublishTargetRelease[keyof typeof SharedPublishTargetRelease];
+
+
+export const SharedPublishTargetRelease = {
+  S4HANA_2025: 'S4HANA_2025',
+} as const;
+
+export type SharedPublishEntitiesItemKind = typeof SharedPublishEntitiesItemKind[keyof typeof SharedPublishEntitiesItemKind];
+
+
+export const SharedPublishEntitiesItemKind = {
+  object: 'object',
+  interface: 'interface',
+} as const;
+
+export type SharedPublishEntitiesItemEvidence = { [key: string]: unknown };
+
+export type SharedPublishEntitiesItem = {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  key: string;
+  kind: SharedPublishEntitiesItemKind;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  name: string;
+  content: SharedContent;
+  evidence: SharedPublishEntitiesItemEvidence;
+};
+
+export interface SharedPublish {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  importKey: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  system: string;
+  targetRelease: SharedPublishTargetRelease;
+  /**
+     * @minItems 1
+     * @maxItems 5000
+     */
+  entities: SharedPublishEntitiesItem[];
+}
+
+export type WorkspaceRecordKind = typeof WorkspaceRecordKind[keyof typeof WorkspaceRecordKind];
+
+
+export const WorkspaceRecordKind = {
+  object: 'object',
+  interface: 'interface',
+} as const;
+
+export type WorkspaceRecordEvidence = { [key: string]: unknown };
+
+export interface WorkspaceRecord {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  key: string;
+  kind: WorkspaceRecordKind;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  name: string;
+  content: SharedContent;
+  evidence: WorkspaceRecordEvidence;
+}
+
+export type WorkspaceReviewInputTargetRelease = typeof WorkspaceReviewInputTargetRelease[keyof typeof WorkspaceReviewInputTargetRelease];
+
+
+export const WorkspaceReviewInputTargetRelease = {
+  S4HANA_2025: 'S4HANA_2025',
+} as const;
+
+export interface WorkspaceReviewInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  importKey: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  system: string;
+  targetRelease: WorkspaceReviewInputTargetRelease;
+  record: WorkspaceRecord;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  expectedVersion: number | null;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  reviewerId: string;
+  shareWithReviewer: boolean;
+  requestId: string;
+}
+
+export interface WorkspaceReviewer {
+  id: string;
+  username: string;
+  member: boolean;
+  eligible: boolean;
+}
+
+export interface WorkspaceReviewResult {
+  assessment: SharedAssessment;
+  entity: SharedEntity;
+}
+
+export interface WorkspaceReviewContext {
+  assessment: SharedAssessment | null;
+  entity: SharedEntity | null;
+  reviewers: WorkspaceReviewer[];
+}
+
+export interface SharedVersion {
+  /** @minimum 1 */
+  expectedVersion: number;
+}
+
+export interface SharedEdit {
+  /** @minimum 1 */
+  expectedVersion: number;
+  content: SharedContent;
+}
+
+export type SharedActionAction = typeof SharedActionAction[keyof typeof SharedActionAction];
+
+
+export const SharedActionAction = {
+  submit: 'submit',
+  approve: 'approve',
+  'request-changes': 'request-changes',
+} as const;
+
+export interface SharedAction {
+  /** @minimum 1 */
+  expectedVersion: number;
+  action: SharedActionAction;
+  requestId: string;
+  /** @maxLength 20000 */
+  comment?: string;
+}
+
+/**
+ * @nullable
+ */
+export type SharedMembershipAccess = typeof SharedMembershipAccess[keyof typeof SharedMembershipAccess] | null;
+
+
+export const SharedMembershipAccess = {
+  read: 'read',
+  edit: 'edit',
+  review: 'review',
+} as const;
+
+export interface SharedMembership {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  userId: string;
+  /** @nullable */
+  access: SharedMembershipAccess;
+}
+
+export interface SharedAssignment {
+  /** @minimum 1 */
+  expectedVersion: number;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  reviewerId: string;
+}
+
+export interface SharedSourceMapping {
+  /** @minimum 1 */
+  expectedVersion: number;
+  /** @maxLength 200 */
+  repository: string;
+  /** @pattern ^[0-9a-f]{40}$ */
+  commit: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  path: string;
+}
+
+export interface CompanyTemplateUpload {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  file: Blob;
+  replaceId?: string;
+  /** @minimum 1 */
+  expectedVersion?: number;
+}
+
+export interface ApprovedDownload {
+  /**
+     * @minItems 1
+     * @maxItems 50
+     */
+  ids: string[];
+}
+
 export interface KnowledgeCleanupInput {
   dryRun: boolean;
 }
@@ -92,6 +515,7 @@ export interface WordReportEntity {
   target_system?: string;
   target_release?: string;
   classification?: string;
+  complexity?: string;
   severity?: string;
   rationale?: string;
   mitigation?: string;
@@ -681,6 +1105,106 @@ export interface DemoResult {
 export interface HealthStatus {
   status: string;
 }
+
+export type ListReviewNotificationsParams = {
+/**
+ * Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.
+ * @maxLength 19
+ * @pattern ^[1-9][0-9]{0,18}$
+ */
+cursor?: string;
+/**
+ * Apply the same filter when following nextCursor.
+ */
+filter?: ListReviewNotificationsFilter;
+};
+
+export type ListReviewNotificationsFilter = typeof ListReviewNotificationsFilter[keyof typeof ListReviewNotificationsFilter];
+
+
+export const ListReviewNotificationsFilter = {
+  all: 'all',
+  unread: 'unread',
+} as const;
+
+export type ListSharedAssessments200 = {
+  assessments: SharedAssessment[];
+};
+
+export type PublishSharedAssessment200 = {
+  assessment: SharedAssessment;
+  existing: boolean;
+};
+
+export type GetWorkspaceReviewParams = {
+/**
+ * @minLength 1
+ * @maxLength 200
+ */
+importKey: string;
+/**
+ * @minLength 1
+ * @maxLength 1000
+ */
+key: string;
+};
+
+export type GetSharedAssessment200MembersItem = { [key: string]: unknown };
+
+export type GetSharedAssessment200EventsItem = { [key: string]: unknown };
+
+export type GetSharedAssessment200 = {
+  assessment: SharedAssessment;
+  entities: SharedEntity[];
+  members: GetSharedAssessment200MembersItem[];
+  events: GetSharedAssessment200EventsItem[];
+};
+
+export type SharedGithubFilesParams = {
+/**
+ * @maxLength 200
+ */
+repository: string;
+/**
+ * @maxLength 200
+ */
+ref: string;
+};
+
+export type ListSharedApprovalsParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @maxLength 4096
+ */
+cursor?: string;
+/**
+ * @maxLength 200
+ */
+search?: string;
+kind?: ListSharedApprovalsKind;
+showSuperseded?: ListSharedApprovalsShowSuperseded;
+};
+
+export type ListSharedApprovalsKind = typeof ListSharedApprovalsKind[keyof typeof ListSharedApprovalsKind];
+
+
+export const ListSharedApprovalsKind = {
+  all: 'all',
+  object: 'object',
+  interface: 'interface',
+} as const;
+
+export type ListSharedApprovalsShowSuperseded = typeof ListSharedApprovalsShowSuperseded[keyof typeof ListSharedApprovalsShowSuperseded];
+
+
+export const ListSharedApprovalsShowSuperseded = {
+  true: 'true',
+  false: 'false',
+} as const;
 
 export type ListReportTemplates200 = {
   configured: boolean;

@@ -16,6 +16,7 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 
 const KnowledgePage = lazy(() => import('@/pages/knowledge'));
 const ReportTemplatesPage = lazy(() => import('@/pages/report-templates'));
+const SharedAssessmentsPage = lazy(() => import('@/pages/shared-assessments'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -39,6 +40,11 @@ function Router() {
         <Route path="/report-templates">
           <Suspense fallback={<div className="flex min-h-[100dvh] items-center justify-center bg-[#f3f6f9]" data-testid="status-loading-templates-page"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>}>
             <ReportTemplatesPage />
+          </Suspense>
+        </Route>
+        <Route path="/shared-assessments">
+          <Suspense fallback={<div className="flex min-h-[100dvh] items-center justify-center bg-[#f3f6f9]" data-testid="status-loading-shared"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>}>
+            <SharedAssessmentsPage />
           </Suspense>
         </Route>
         <Route component={NotFound} />

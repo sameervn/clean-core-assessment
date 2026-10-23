@@ -19,7 +19,7 @@ flowchart LR
   App --> DB
   App --> Files
   App -. explicit user consent .-> AI
-  App -. multi-replica AI .-> Limit
+  App -. shared HTTP and AI limits .-> Limit
 ```
 
 Local Admin/Developer/Reviewer accounts, permissions, session revocation and
@@ -49,7 +49,15 @@ not index.html. Hashed assets, fonts, WASM and lazy exports come from the build.
   Parser/report workers add memory; benchmark real document size/concurrency.
   One replica is dependency-light; two gives availability with cloud storage.
   Local storage is strictly one process/replica and uses Recreate updates.
-- HPA or multiple AI replicas require `CC_AI_LIMITER=redis-rest` plus
+- HPA, multiple replicas or API workers require `CC_HTTP_LIMITER=redis-rest`
+  plus `CC_HTTP_LIMITER_URL/TOKEN/NAMESPACE` through the runtime Secret.
+  Declare process-manager workers with `CC_API_WORKER_COUNT` (default 1).
+  Helm rejects local mode when scaling; startup validates the actual environment,
+  including Secret-file configuration. The chart runs one Node process per pod.
+  See docs/client-security-remediation.md for bounded storage, permissions and
+  fail-closed behavior. Use shared mode for overlapping rolling replicas too.
+  Local HTTP mode uses Recreate updates even with cloud file storage.
+- HPA or multiple AI replicas additionally require `CC_AI_LIMITER=redis-rest` plus
   URL/token/namespace. This protocol accepts Redis commands over HTTPS;
   raw Redis TCP is **not** a drop-in dependency. No quota is spent by probes.
 - Capacity budget: `HPA max × CC_DB_POOL_MAX + migration(3) + admin/backup

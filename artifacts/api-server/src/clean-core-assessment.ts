@@ -1,3 +1,8 @@
+import { complexitySize } from "./collaboration/contract";
+import { usageState } from "./collaboration/usage";
+import { evidenceKey, parseEvidenceXml } from "./evidence-xml";
+import { assertInputBounds } from "./input-bounds";
+
 export const CLEAN_CORE_EVIDENCE_TYPES = [
   "atc", "cloud-readiness", "custom-code", "usage", "modifications",
   "enhancements", "object-metadata", "interfaces", "readiness-check",
@@ -18,6 +23,7 @@ export interface CleanCoreEvidenceRow {
   apiStatus?: string;
   enhancementType?: string;
   usageCount?: number;
+  telemetryCoverage?: number;
   owner?: string;
   package?: string;
   module?: string;
@@ -62,6 +68,7 @@ export function buildCleanCoreDemoEvidence(system: string, targetRelease: string
   const common = {
     collectionStart: "2026-08-01",
     collectionEnd: "2026-08-31",
+    telemetryCoverage: 100,
   };
   const evidence: CleanCoreEvidenceSet[] = [
     {
@@ -202,10 +209,12 @@ function scalar(value: unknown): string {
 function parseDelimited(content: string): Record<string, unknown>[] {
   const records: string[][] = [];
   let row: string[] = [], value = "", quoted = false;
-  const firstLine = content.split(/\r?\n/, 1)[0] || "";
+  const firstLine = content.slice(0, content.indexOf("\n") < 0 ? content.length : content.indexOf("\n"));
+  if (firstLine.length > 20_000) throw new Error("Delimited header exceeds 20,000 characters");
   const candidates = [",", "\t", ";", "|"];
   const delimiter = candidates.sort((a, b) => firstLine.split(b).length - firstLine.split(a).length)[0];
   for (let i = 0; i < content.length; i += 1) {
+    if (value.length > 20_000 || row.length > 128 || records.length > 20_001) throw new Error("Delimited evidence complexity limit exceeded");
     const char = content[i];
     if (char === '"' && quoted && content[i + 1] === '"') {
       value += '"'; i += 1;
@@ -219,9 +228,10 @@ function parseDelimited(content: string): Record<string, unknown>[] {
     } else value += char;
   }
   row.push(value.trim());
+  if (quoted || value.length > 20_000 || row.length > 128) throw new Error("Invalid or excessive delimited evidence");
   if (row.some(Boolean)) records.push(row);
   if (records.length < 2) throw new Error("Delimited files require a header and at least one data row");
-  const headers = records[0].map(normalizeHeader);
+  const headers = records[0].map(evidenceKey);
   if (!headers.some(Boolean)) throw new Error("The evidence file has no recognizable header");
   if (!headers.some((header) => [
     "objectname", "object", "repositoryobject", "program", "include", "name",
@@ -237,6 +247,7 @@ function parseDelimited(content: string): Record<string, unknown>[] {
 function parsePlainText(content: string): Record<string, unknown>[] {
   const records: Record<string, unknown>[] = [];
   for (const line of content.split(/\r?\n/)) {
+    if (records.length >= 20_000 || line.length > 100_000) throw new Error("Text evidence complexity limit exceeded");
     const value = line.trim();
     if (!value || value.startsWith("#") || value.startsWith("//")) continue;
     const parts = value.split(/\t|\|/).map((part) => part.trim());
@@ -247,34 +258,16 @@ function parsePlainText(content: string): Record<string, unknown>[] {
       });
       continue;
     }
-    const match = value.match(/^([^:]+):\s*(error|warning|info|critical|high|medium|low)\s*:\s*(.+)$/i);
-    if (match) records.push({ objectname: match[1], severity: match[2], finding: match[3] });
-  }
-  return records;
-}
-
-function decodeXml(value: string): string {
-  return value.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'").replace(/&amp;/g, "&").trim();
-}
-
-function parseXml(content: string): Record<string, unknown>[] {
-  if (/<!DOCTYPE|<!ENTITY/i.test(content)) throw new Error("DTD and entity declarations are not supported");
-  const records: Record<string, unknown>[] = [];
-  const blockPattern = /<(finding|atcresult|result|item|row|record|object|entry)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = blockPattern.exec(content)) !== null) {
-    const raw: Record<string, unknown> = {};
-    const attrs = match[2];
-    for (const attribute of attrs.matchAll(/([\w:.-]+)\s*=\s*["']([^"']*)["']/g)) {
-      raw[normalizeHeader(attribute[1])] = decodeXml(attribute[2]);
+    const first = value.indexOf(":");
+    const second = value.indexOf(":", first + 1);
+    if (first > 0 && second > first) {
+      const severity = value.slice(first + 1, second).trim();
+      const finding = value.slice(second + 1).trim();
+      if (finding && ["error", "warning", "info", "critical", "high", "medium", "low"].includes(severity.toLowerCase())) {
+        records.push({ objectname: value.slice(0, first), severity, finding });
+      }
     }
-    for (const child of match[3].matchAll(/<([\w:.-]+)\b[^>]*>([^<]*)<\/\1>/g)) {
-      raw[normalizeHeader(child[1])] = decodeXml(child[2]);
-    }
-    if (Object.keys(raw).length) records.push(raw);
   }
-  if (!records.length) throw new Error("XML must contain finding, result, item, row, record, object, or entry elements");
   return records;
 }
 
@@ -308,7 +301,7 @@ function numeric(row: Record<string, unknown>, ...keys: string[]): number | unde
 function normalizeRecord(rawValue: unknown, type: CleanCoreEvidenceType): CleanCoreEvidenceRow | null {
   if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) return null;
   const raw = Object.fromEntries(Object.entries(rawValue as Record<string, unknown>)
-    .map(([key, value]) => [normalizeHeader(key), value]));
+    .map(([key, value]) => [evidenceKey(key), value]));
   const objectName = pick(raw, "objectName", "object", "repositoryObject", "program", "include",
     "name", "customObject", "component", "service", "interfaceName");
   if (!objectName) return null;
@@ -323,6 +316,7 @@ function normalizeRecord(rawValue: unknown, type: CleanCoreEvidenceType): CleanC
     apiStatus: pick(raw, "apiStatus", "releaseStatus", "released", "cloudStatus") || undefined,
     enhancementType: pick(raw, "enhancementType", "technology", "extensibility", "extensionType") || undefined,
     usageCount: numeric(raw, "usageCount", "executions", "callCount", "count"),
+    telemetryCoverage: numeric(raw, "telemetryCoverage", "runtimeCoverage", "observationCoverage"),
     owner: pick(raw, "owner", "responsible", "assignee", "changedBy") || undefined,
     package: pick(raw, "package", "devclass") || undefined,
     module: pick(raw, "module", "applicationComponent", "component") || undefined,
@@ -351,11 +345,17 @@ function normalizeRecord(rawValue: unknown, type: CleanCoreEvidenceType): CleanC
 }
 
 export function parseCleanCoreEvidence(type: CleanCoreEvidenceType, content: string): CleanCoreEvidenceRow[] {
+  if (typeof content !== "string" || content.length > CLEAN_CORE_MAX_NORMALIZED_BYTES
+    || Buffer.byteLength(content, "utf8") > CLEAN_CORE_MAX_NORMALIZED_BYTES) throw new Error("Evidence exceeds 16 MB");
   const trimmed = content.replace(/^\uFEFF/, "").trim();
   if (!trimmed) throw new Error("The uploaded file is empty");
   let records: unknown[];
-  if (trimmed.startsWith("<")) records = parseXml(trimmed);
-  else if (trimmed.startsWith("[") || trimmed.startsWith("{")) records = extractJsonRecords(JSON.parse(trimmed));
+  if (trimmed.startsWith("<")) records = parseEvidenceXml(trimmed);
+  else if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    const parsed: unknown = JSON.parse(trimmed);
+    assertInputBounds(parsed);
+    records = extractJsonRecords(parsed);
+  }
   else {
     try {
       records = parseDelimited(trimmed);
@@ -365,6 +365,7 @@ export function parseCleanCoreEvidence(type: CleanCoreEvidenceType, content: str
     }
   }
   if (!records.length) throw new Error("The evidence document does not contain a record array");
+  if (records.length > 20_000) throw new Error("Evidence exceeds 20,000 rows");
   const rows = records.map((record) => normalizeRecord(record, type)).filter((row): row is CleanCoreEvidenceRow => !!row);
   if (!rows.length) throw new Error(`No recognizable ${type} records found. Include an object name, object, program, component, service, or interface column.`);
   for (const row of rows) {
@@ -852,12 +853,13 @@ export function buildCleanCoreAssessment(input: {
     const usageValue = metadata("usageCount");
     const hasUsageEvidence = typeof usageValue === "number" && Number.isFinite(usageValue);
     const usage = hasUsageEvidence ? usageValue : 0;
+    const observedUsage = usageState(records.filter(r => r.type === "usage").map(r => r.row));
     const criticality = Math.min(5, Math.max(1, Number(metadata("processCriticality") || 1)));
     const weight = input.weighted ? (1 + Math.log10(usage + 1)) * criticality : 1;
     const levelValue = LEVEL_VALUE[top.level];
     const levelPoints = (levelValue - 1) * 25;
     const score = Math.round(levelPoints * weight * 10) / 10;
-    const disposition = usage === 0 && hasUsageEvidence
+    const disposition = observedUsage === "not-in-use"
       ? "retire" : top.level === "A" || top.level === "B" ? "retain" : top.level === "C" ? "remediate" : "redesign";
     const tier = top.level === "A" ? "key-user" : top.level === "B" ? "developer-extensibility"
       : /interface|rfc|idoc|proxy|side.?by.?side/i.test(`${metadata("objectType")} ${top.category}`) ? "side-by-side-btp" : "developer-extensibility";
@@ -942,9 +944,10 @@ export function buildCleanCoreAssessment(input: {
       id: stableId(`${input.system}:${key}`), system: input.system, objectName,
       objectType: metadata("objectType") || "Unknown", classification: top.level,
       classificationExplanation, classificationReason, score, highestPriorityFinding: top,
-      findings, usage, usageCount: usage, owner: metadata("owner") || "Unassigned", package: metadata("package") || "Unassigned",
+      findings, usage, usageCount: hasUsageEvidence ? usage : null, usageStatus: observedUsage,
+      owner: metadata("owner") || "Unassigned", package: metadata("package") || "Unassigned",
       module: metadata("module") || "Unmapped", process: metadata("process") || "Unmapped",
-      size, complexity, lastChange: metadata("lastChange") || null, transport: metadata("transport") || null,
+      size, complexity, complexitySize: complexitySize(metadata("complexity")), lastChange: metadata("lastChange") || null, transport: metadata("transport") || null,
       offendingSapObject: top.offendingSapObject || metadata("offendingSapObject") || null,
       source: [...new Set(records.map(({ type }) => type))], confidence, disposition,
       extensibilityTier: tier, successor,
@@ -1111,7 +1114,7 @@ export function buildCleanCoreAssessment(input: {
     },
     blastRadiusSummary: [...clusters].sort((a, b) => b.blastRadius - a.blastRadius).slice(0, 20),
     levelD: inventory.filter((object) => object.classification === "D"),
-    deadCode: input.evidence.some((set) => set.type === "usage") ? inventory.filter((object) => object.usage === 0) : [],
+    deadCode: inventory.filter((object) => object.usageStatus === "not-in-use"),
     duplicates: inventory.filter((object) => object.duplicateOf),
     integrations: inventory.filter((object) => object.interfaceName || object.dimension === "Integration"),
     recommendations: remediation.slice(0, 50).map((object) => ({

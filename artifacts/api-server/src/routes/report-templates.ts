@@ -7,10 +7,18 @@ import { AiError } from "../assessment-ai";
 import { storageConfigured } from "../knowledge/storage";
 import { reference, example, fields } from "../reports/contract.mjs";
 import { processWord } from "../reports/process";
-import { fresh, owned, locked, view, version, startUpload, finishUpload, templateBytes } from "../reports/service";
+import { requestLimit } from "../request-limits";
+import { fresh, owned, locked, view, version, startUpload, finishUpload, templateBytes, recheckTemplate } from "../reports/service";
 
 export const reportTemplateRouter = Router();
 reportTemplateRouter.use(requireSession);
+reportTemplateRouter.use(requestLimit("personal-templates", 120, true));
+const expensiveReports = requestLimit("personal-report-render", 20, true);
+// Includes sample generation, upload validation, previews and rendering.
+reportTemplateRouter.use((req, res, next) => {
+  if (req.method !== "GET" || req.path === "/sample") { expensiveReports(req, res, next); return; }
+  next();
+});
 const wrap = (fn: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await fn(req, res, next); }
   catch (e) {
@@ -35,7 +43,9 @@ reportTemplateRouter.get("/", wrap(async (req, res) => {
   // Export-only reviewers can list their own retained templates, never another owner's.
   if (!req.identity!.user.permissions.some(p => p === "export" || p === "templates.manage")) throw new AiError(403, "Export or template management permission required.");
   const rows = (await pool.query("SELECT * FROM cc_report_templates WHERE owner_id=$1 AND status='ready' ORDER BY created_at DESC", [req.identity!.user.id])).rows;
-  res.json({ templates: rows.map(view), activeId: rows.find(r => r.active)?.id ?? null, configured: storageConfigured() });
+  const companies = (await pool.query("SELECT * FROM cc_company_templates WHERE previewed ORDER BY active DESC,created_at DESC")).rows;
+  res.json({ templates: [...companies.map(r => ({ ...view(r), name: `${r.name} (company)`, company: true })), ...rows.map(view)],
+    activeId: companies.find(r => r.active)?.id ?? rows.find(r => r.active)?.id ?? null, configured: storageConfigured() });
 }));
 reportTemplateRouter.get("/reference", (_req, res) => { res.json(reference); });
 reportTemplateRouter.get("/sample", requirePermission("export"), wrap(async (req, res) => {
@@ -77,8 +87,8 @@ reportTemplateRouter.post("/preview", requirePermission("export"), wrap(async (r
   const bytes = await processWord({ mode: "render", bytes: selected?.bytes.toString("base64"), entities: [example] }, signal(res));
   await locked(req.identity!, "export", async c => {
     if (selected) {
-      version(await owned(c, req.identity!, selected.row.id), selected.row.version);
-      await c.query("UPDATE cc_report_templates SET previewed=true WHERE id=$1", [selected.row.id]);
+      version(await recheckTemplate(c, req.identity!, selected.row), selected.row.version);
+      if (!selected.row.company) await c.query("UPDATE cc_report_templates SET previewed=true WHERE id=$1", [selected.row.id]);
     }
     download(res, bytes, "example-only-populated-preview.docx");
   });
@@ -106,7 +116,7 @@ reportTemplateRouter.post("/render", requirePermission("export"), wrap(async (re
   if (selected && !selected.row.previewed) throw new AiError(409, "Preview this template before exporting.");
   const bytes = await processWord({ mode: "render", bytes: selected?.bytes.toString("base64"), entities }, signal(res));
   await locked(req.identity!, "export", async c => {
-    if (selected) version(await owned(c, req.identity!, selected.row.id), selected.row.version);
+    if (selected) version(await recheckTemplate(c, req.identity!, selected.row), selected.row.version);
     const count = new Set(entities.map(x => x.entity_id)).size;
     download(res, bytes, count === 1 ? "clean-core-report.docx" : `clean-core-${count}-reports.zip`);
   });

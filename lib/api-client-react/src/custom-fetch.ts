@@ -26,7 +26,10 @@ let _authTokenGetter: AuthTokenGetter | null = null;
  * Pass `null` to clear the base URL.
  */
 export function setBaseUrl(url: string | null): void {
-  _baseUrl = url ? url.replace(/\/+$/, "") : null;
+  if (url !== null && url.length > 8192) throw new Error("API base URL exceeds 8192 characters.");
+  let end = url?.length ?? 0;
+  while (end > 0 && url![end - 1] === "/") end--;
+  _baseUrl = url ? url.slice(0, end) : null;
 }
 
 /**

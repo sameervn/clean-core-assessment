@@ -4,6 +4,7 @@ import { fromBuffer } from "yauzl";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { posix } from "node:path";
 import { fields, rowFields } from "./contract.mjs";
+import { SaxesParser } from "saxes";
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const parser = new XMLParser({ ignoreAttributes: false, processEntities: true, removeNSPrefix: true });
@@ -12,6 +13,7 @@ const fail = message => { throw new Error(message); };
 
 // Inspect every entry before PizZip/Docxtemplater allocate the archive.
 export function inspectArchive(bytes) {
+  if (!Buffer.isBuffer(bytes)) fail("DOCX must be binary Buffer data.");
   if (bytes.length > 4_000_000 || bytes.length < 4 || bytes.readUInt32LE(0) !== 0x04034b50) fail("Use an unencrypted DOCX ZIP smaller than 4 MB.");
   return new Promise((resolve, reject) => {
     fromBuffer(bytes, { lazyEntries: true, validateEntrySizes: true }, (error, zip) => {
@@ -75,7 +77,20 @@ export async function validate(bytes) {
   const content = parser.parse(entries.get("[Content_Types].xml").toString());
   if (!array(content?.Types?.Override).some(x => x["@_PartName"] === "/word/document.xml" && x["@_ContentType"] === "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml")) fail("Not a standard Word DOCX document.");
   const document = entries.get("word/document.xml").toString();
-  if (!document.includes(W) || !/<w:document\b/.test(document)) fail("Use standard WordprocessingML with the w namespace.");
+  const rootParser = new SaxesParser({ xmlns: true });
+  let rootSeen = false;
+  rootParser.on("doctype", () => fail("DTD is unsupported."));
+  rootParser.on("opentag", tag => {
+    if (!rootSeen) {
+      rootSeen = true;
+      if (tag.local !== "document" || tag.prefix !== "w" || tag.uri !== W) fail("Use standard WordprocessingML with the w namespace.");
+    }
+    // Reject namespace rebinding in descendants as well.
+    if (tag.prefix === "w" && tag.uri !== W) fail("Invalid WordprocessingML namespace.");
+    if (Object.hasOwn(tag.ns, "w") && tag.ns.w !== W) fail("Invalid WordprocessingML namespace.");
+  });
+  rootParser.write(document).close();
+  if (!rootSeen) fail("Missing document root.");
   // CRC integrity check on every part, including images.
   const zip = new PizZip(bytes, { checkCRC32: true });
   const tags = new Set(); let count = 0;

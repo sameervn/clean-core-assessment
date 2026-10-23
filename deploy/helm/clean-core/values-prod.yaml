@@ -10,3 +10,6 @@ pdb:
 # inject CC_AI_LIMITER_URL/TOKEN/NAMESPACE through the existing runtime Secret.
 config:
   CC_AI_LIMITER: redis-rest
+  # Required even with AI disabled; use the same namespace on every replica.
+  # Inject CC_HTTP_LIMITER_URL/TOKEN/NAMESPACE through the runtime Secret.
+  CC_HTTP_LIMITER: redis-rest

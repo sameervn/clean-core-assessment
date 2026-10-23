@@ -2,6 +2,7 @@ import "@workspace/db/runtime-env";
 import { pool } from "@workspace/db";
 import { initializeKnowledge } from "../src/knowledge/schema";
 import { initializeReports } from "../src/reports/schema";
+import { initializeCollaboration } from "../src/collaboration/schema";
 
 // Additive and idempotent; intentionally separate from the app identity.
 // Acquire a session-level lock before all schema steps. No force-push.
@@ -30,6 +31,7 @@ try {
   `);
   await initializeKnowledge(client);
   await initializeReports(client);
+  await initializeCollaboration(client);
   await client.query("COMMIT");
   process.stdout.write("Client schema migration completed\n");
 } catch {

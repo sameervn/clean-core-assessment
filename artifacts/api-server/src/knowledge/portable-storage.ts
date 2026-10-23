@@ -16,6 +16,10 @@ export interface PortableStorage {
   probe(): Promise<void>;
 }
 const MAX = 8 * 1024 * 1024;
+export function assertDocumentBytes(bytes: unknown): asserts bytes is Buffer {
+  if (!Buffer.isBuffer(bytes)) throw new TypeError("Document must be a Buffer");
+  if (!bytes.length || bytes.length > MAX) throw new Error("Document must contain 1 byte to 8 MB");
+}
 export function storageKey(path: string) {
   const root = process.env.PRIVATE_OBJECT_DIR?.replace(/\/$/, "");
   if (!root || !path.startsWith(`${root}/`) || path.includes("\\") || path.split("/").some(p => p === ".." || p === ".")) throw new Error("Invalid storage path");
@@ -24,6 +28,7 @@ export function storageKey(path: string) {
 async function bounded(stream: AsyncIterable<Uint8Array>) {
   const chunks: Buffer[] = []; let size = 0;
   for await (const chunk of stream) {
+    if (!(chunk instanceof Uint8Array)) throw new TypeError("Storage stream must contain binary chunks");
     size += chunk.length;
     if (size > MAX) throw new Error("Document exceeds 8 MB");
     chunks.push(Buffer.from(chunk));
@@ -54,7 +59,7 @@ export function s3Storage(client = new S3Client({
       return bounded(result.Body);
     },
     async put(path, bytes) {
-      if (bytes.length > MAX) throw new Error("Document exceeds 8 MB");
+      assertDocumentBytes(bytes);
       await send(new PutObjectCommand({ Bucket: bucket, Key: storageKey(path), Body: bytes, IfNoneMatch: "*", ContentType: "application/octet-stream" }));
     },
     async remove(path, version) {
@@ -92,7 +97,7 @@ export function azureStorage(container = azureContainer()): PortableStorage {
   return {
     async probe() { await container.getProperties(options()); },
     async put(path, bytes) {
-      if (bytes.length > MAX) throw new Error("Document exceeds 8 MB");
+      assertDocumentBytes(bytes);
       await blob(path).uploadData(bytes, { ...options(), conditions: { ifNoneMatch: "*" } });
     },
     async read(path) {
@@ -122,7 +127,7 @@ export function localStorage(root = process.env.CC_STORAGE_LOCAL_DIR!, now = Dat
     async probe() { await access(dir); },
     read: path => locked(async () => Buffer.from((await record(path)).data, "base64")),
     put: (path, bytes) => locked(async () => {
-      if (bytes.length > MAX) throw new Error("Document exceeds 8 MB");
+      assertDocumentBytes(bytes);
       await mkdir(dir, { recursive: true });
       // Same-volume temporary file is required for atomic link; private mode,
       // never visible as an object. /tmp cannot be atomically linked across volumes.

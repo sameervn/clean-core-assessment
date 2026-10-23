@@ -52,6 +52,8 @@ export async function readObject(path: string) {
   return Buffer.concat(buffers);
 }
 export async function saveSealed(path: string, bytes: Buffer) {
+  if (!Buffer.isBuffer(bytes)) throw new TypeError("Document must be a Buffer");
+  if (!bytes.length || bytes.length > MAX_FILE_BYTES) throw new Error("Document must contain 1 byte to 8 MB");
   const backend = portableStorage();
   if (backend) return backend.put(path, bytes);
   await file(path).save(bytes, { resumable: false, contentType: "application/octet-stream", preconditionOpts: { ifGenerationMatch: 0 } });

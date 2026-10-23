@@ -30,7 +30,11 @@ function run(extra, input) {
 try {
   if (process.env.CC_SMOKE_SKIP_BUILD !== "true") run(["build", "app"]);
   run(["up", "--no-build", "-d"]);
-  const smoke = readFileSync("deploy/smoke-api.mjs", "utf8");
+  // The disposable container receives this script on stdin, not the deploy tree.
+  const smoke = readFileSync("deploy/smoke-api.mjs", "utf8").replace(
+    'import { withPrivateTempFile } from "./private-temp.mjs";',
+    readFileSync("deploy/private-temp.mjs", "utf8"),
+  );
   process.stdout.write(run(["exec", "-T", "app", "node", "--input-type=module"], smoke));
   // Repeat migration with existing rows and objects: no destructive schema push.
   run(["run", "--rm", "migrate"]);

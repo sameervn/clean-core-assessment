@@ -3,6 +3,7 @@ import { resolve, extname } from "node:path";
 import { pool } from "@workspace/db";
 import { probeStorage } from "./knowledge/storage";
 import { aiLimiterFromEnv } from "./ai-limiter";
+import { requestLimit, httpLimiterProbe, validateRequestLimits } from "./request-limits";
 
 let stopping = false;
 export function markStopping() { stopping = true; }
@@ -20,6 +21,7 @@ async function check() {
   } catch (e) { client.release(true); throw e; }
   client.release();
   await probeStorage();
+  await httpLimiterProbe();
   if (process.env.CC_AI_ENABLED === "true") await limiter.probe?.();
 }
 probes.get("/ready", async (_req, res) => {
@@ -37,6 +39,7 @@ probes.get("/ready", async (_req, res) => {
 export function productionFrontend(app: Express) {
   if (!process.env.CC_STATIC_DIR) return;
   const directory = resolve(process.env.CC_STATIC_DIR);
+  app.use(requestLimit("static", 600));
   app.use(staticFiles(directory, { index: false }));
   app.get("/{*path}", (req, res, next) => {
     if (extname(req.path) || !req.accepts("html")) { next(); return; }
@@ -45,8 +48,10 @@ export function productionFrontend(app: Express) {
   });
 }
 export function validateRuntime() {
+  validateRequestLimits();
   const replicas = Number(process.env.CC_REPLICA_COUNT ?? "1");
+  const workers = Number(process.env.CC_API_WORKER_COUNT ?? "1");
   if (!Number.isInteger(replicas) || replicas < 1) throw new Error("Invalid replica count");
-  if (replicas > 1 && process.env.CC_KNOWLEDGE_STORAGE === "local") throw new Error("Local storage supports one replica only");
-  if (replicas > 1 && process.env.CC_AI_ENABLED === "true" && process.env.CC_AI_LIMITER !== "redis-rest") throw new Error("Multiple AI replicas require Redis REST limiter");
+  if ((replicas > 1 || workers > 1) && process.env.CC_KNOWLEDGE_STORAGE === "local") throw new Error("Local storage supports one process/replica only");
+  if ((replicas > 1 || workers > 1) && process.env.CC_AI_ENABLED === "true" && process.env.CC_AI_LIMITER !== "redis-rest") throw new Error("Multiple AI processes/replicas require Redis REST limiter");
 }

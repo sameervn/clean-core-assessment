@@ -1,20 +1,21 @@
 import { apiFetch, apiJson, readApiError } from "./api";
 import { aiNarrativeRows, aiNarrativeReportText, type AiNarratives } from "./ai-narratives";
 import { exportSourceVersions } from "./source-versions";
+import { itemComplexityLabel } from "./complexity-size";
 
 export const NOT_PROVIDED = "Not provided";
 export const NOT_APPLICABLE = "Not applicable";
 export const MAX_RENDER_ENTITIES = 50;
 export const SAMPLE_TEMPLATE_ID = "sample";
 
-export interface ReportTemplate { id: string; name: string; version: number; previewed: boolean; active: boolean }
+export interface ReportTemplate { id: string; name: string; version: number; previewed: boolean; active: boolean; company?: boolean }
 export interface TemplateList { templates: ReportTemplate[]; activeId: string | null; configured: boolean }
 export interface TemplateReference { fields: string[]; rowFields: { findings: string[]; recommendations: string[] }; limits: string[]; syntax: string }
 
 export interface ReportEntity {
   entity_id: string; entity_kind: "object" | "interface"; entity_name: string; entity_type: string; package: string; owner: string;
   source_system: string; target_system: string; target_release: string; classification: string; severity: string;
-  rationale: string; mitigation: string; evidence: string; notes: string; ai_explanations: string;
+  complexity: string; rationale: string; mitigation: string; evidence: string; notes: string; ai_explanations: string;
   findings: Array<{ text: string; severity: string }>;
   recommendations: Array<{ text: string }>;
 }
@@ -139,7 +140,9 @@ export function buildEntityModel(item: any, kind: EntityKind, ctx: ReportContext
     return { text: text(`${head}${f.level ? ` (Level ${scalar(f.level)})` : ""}${body ? `: ${body}` : ""}`), severity: text(f.severity) };
   });
   const primary = rec?.primary ? scalar(rec.primary) : scalar(rec?.label);
-  const recs = [primary, ...list(rec?.alternatives).map(a => `Alternative: ${a}`)].filter(Boolean).map(t => ({ text: t }));
+  const size = itemComplexityLabel(item);
+  // Old templates without {complexity} still show the size through the recommendations rows.
+  const recs = [primary, ...list(rec?.alternatives).map(a => `Alternative: ${a}`), `Complexity size: ${size}`].filter(Boolean).map(t => ({ text: t }));
   const evidence = evidenceLines(item, ctx);
   const system = text(ctx.system || item.system);
   return {
@@ -154,13 +157,14 @@ export function buildEntityModel(item: any, kind: EntityKind, ctx: ReportContext
     target_release: text(ctx.targetRelease?.replace("S4HANA_", "S/4HANA ")),
     classification: item.classification ? `Level ${scalar(item.classification)}` : NOT_PROVIDED,
     severity: text(item.highestPriorityFinding?.severity),
+    complexity: size,
     rationale: text(item.classificationReason?.summary || item.classificationExplanation),
     mitigation: mitigationText(mitigation),
     evidence: evidence.length ? evidence.join("\n") : NOT_PROVIDED,
     notes: text(ctx.narratives[item.id]),
     ai_explanations: ai.length ? ai.join("\n\n") : NOT_APPLICABLE,
     findings: findings.length ? findings : [{ text: NOT_PROVIDED, severity: NOT_APPLICABLE }],
-    recommendations: recs.length ? recs : [{ text: NOT_PROVIDED }],
+    recommendations: recs,
   };
 }
 

@@ -63,6 +63,7 @@ function inputError(error: unknown): string {
 router.post("/clean-core/evidence", requirePermission("evidence"), upload.single("file"), (req, res) => {
   try {
     if (!req.file) throw new Error("Choose an evidence file to upload.");
+    if (!Buffer.isBuffer(req.file.buffer) || !req.file.buffer.length || req.file.buffer.length > 16_000_000) throw new Error("Evidence must be binary file data of 1 byte to 16 MB.");
     const type = z.enum(CLEAN_CORE_EVIDENCE_TYPES).parse(req.body.type) as CleanCoreEvidenceType;
     const content = new TextDecoder("utf-8", { fatal: true }).decode(req.file.buffer);
     if (content.includes("\0")) throw new Error("Binary files are not supported. Upload a UTF-8 text export.");

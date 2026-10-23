@@ -54,6 +54,21 @@ export async function closeFixturePool() {
   if (poolPromise) { const p = await poolPromise; poolPromise = null; await p.end(); }
 }
 
+/** Remove only shared data owned by the supplied synthetic account, before account teardown. */
+export async function deleteSyntheticSharedAssessments(account: SyntheticAccount) {
+  const db = await pool();
+  const owned = (await db.query(`SELECT s.id FROM cc_shared_assessments s JOIN cc_accounts a ON a.id=s.owner_id
+    WHERE a.id=$1 AND a.username LIKE $2`, [account.id, `${SYNTHETIC_PREFIX}%`])).rows.map((r: any) => r.id);
+  if (!owned.length) return;
+  for (const table of ["cc_assessment_approvals", "cc_assessment_actions", "cc_assessment_revisions"]) {
+    await db.query(`DELETE FROM ${table} WHERE entity_id IN(SELECT id FROM cc_assessment_entities WHERE assessment_id=ANY($1::uuid[]))`, [owned]);
+  }
+  await db.query("DELETE FROM cc_assessment_events WHERE assessment_id=ANY($1::uuid[])", [owned]);
+  await db.query("DELETE FROM cc_assessment_entities WHERE assessment_id=ANY($1::uuid[])", [owned]);
+  await db.query("DELETE FROM cc_assessment_members WHERE assessment_id=ANY($1::uuid[])", [owned]);
+  await db.query("DELETE FROM cc_shared_assessments WHERE id=ANY($1::uuid[])", [owned]);
+}
+
 /** Change only throwaway test users; exercise real /me refresh and expiry. */
 export async function expireSyntheticSessions(account: SyntheticAccount) {
   const db = await pool();

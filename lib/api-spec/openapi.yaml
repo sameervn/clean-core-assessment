@@ -11,6 +11,323 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /shared-assessments/notifications/preferences:
+    get:
+      operationId: getReviewNotificationPreferences
+      responses:
+        "200":
+          description: Current user's opt-in setting; disabled by default
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewNotificationPreference" }
+    put:
+      operationId: updateReviewNotificationPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReviewNotificationPreference" }
+      responses:
+        "200":
+          description: Persisted account-scoped preference; only future events are eligible on opt-in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewNotificationPreference" }
+  /shared-assessments/notifications:
+    get:
+      operationId: listReviewNotifications
+      parameters:
+        - name: cursor
+          in: query
+          description: Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.
+          schema: { type: string, pattern: "^[1-9][0-9]{0,18}$", maxLength: 19 }
+        - name: filter
+          in: query
+          description: Apply the same filter when following nextCursor.
+          schema: { type: string, enum: [all, unread], default: all }
+      responses:
+        "200":
+          description: Up to 100 notifications filtered by current membership and assignment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewNotificationPage" }
+        "400": { description: Invalid filter or cursor (must be a positive PostgreSQL bigint event ID) }
+  /shared-assessments/notifications/{notificationId}/read:
+    put:
+      operationId: readReviewNotification
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { type: string, pattern: "^[1-9][0-9]*$" } }
+      responses:
+        "200": { description: Marked read idempotently for current recipient and membership only }
+        "404": { description: Notification not available to this account }
+  /shared-assessments:
+    get:
+      operationId: listSharedAssessments
+      responses:
+        "200":
+          description: Only explicitly joined assessments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [assessments]
+                properties:
+                  assessments: { type: array, items: { $ref: "#/components/schemas/SharedAssessment" } }
+    post:
+      operationId: publishSharedAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedPublish" }
+      responses:
+        "200":
+          description: Idempotent owner-scoped publish; browser copy is not changed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [assessment, existing]
+                properties:
+                  assessment: { $ref: "#/components/schemas/SharedAssessment" }
+                  existing: { type: boolean }
+  /shared-assessments/workspace-review:
+    get:
+      operationId: getWorkspaceReview
+      parameters:
+        - { name: importKey, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: key, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 1000 } }
+      responses:
+        "200":
+          description: Owner-scoped shared identity and eligible independent reviewers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceReviewContext" }
+    post:
+      operationId: prepareWorkspaceReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceReviewInput" }
+      responses:
+        "200":
+          description: Selected snapshot saved idempotently; explicit owner invitation grants review membership only
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceReviewResult" }
+        "409": { description: Compare the current shared revision; local work is unchanged }
+  /shared-assessments/administration:
+    get:
+      operationId: sharedAssessmentAdministration
+      responses:
+        "200": { description: Admin-only assessment identity metadata and active account identities; not content access }
+  /shared-assessments/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getSharedAssessment
+      responses:
+        "200":
+          description: Membership-checked assessment, entities, members and latest 500 audit events
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [assessment, entities, members, events]
+                properties:
+                  assessment: { $ref: "#/components/schemas/SharedAssessment" }
+                  entities: { type: array, items: { $ref: "#/components/schemas/SharedEntity" } }
+                  members: { type: array, items: { type: object, additionalProperties: true } }
+                  events: { type: array, items: { type: object, additionalProperties: true } }
+  /shared-assessments/{id}/members:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: updateSharedMembership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedMembership" }
+      responses:
+        "200": { description: Admin-only membership updated; null removes access }
+  /shared-assessments/entities/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: saveSharedEntity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedEdit" }
+      responses:
+        "200":
+          description: New immutable revision; developer edits require a new submission
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SharedEntityEnvelope" }
+        "409": { description: Stale revision; retain and compare local draft }
+  /shared-assessments/entities/{id}/actions:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: sharedReviewAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedAction" }
+      responses:
+        "200":
+          description: Idempotent versioned transition; approval seals a report using the current company default
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SharedEntityEnvelope" }
+        "409": { description: "Stale version, invalid transition or no previewed company default" }
+  /shared-assessments/entities/{id}/reviewer:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: assignSharedReviewer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedAssignment" }
+      responses:
+        "200":
+          description: Admin-assigned independent reviewer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SharedEntityEnvelope" }
+  /shared-assessments/github/status:
+    get:
+      operationId: sharedGithubStatus
+      responses:
+        "200": { description: Configuration and account connection state plus approved repository names; never credentials }
+  /shared-assessments/github/connect:
+    post:
+      operationId: connectSharedGithub
+      responses:
+        "200": { description: Enable this developer's use of configured read-only service access }
+    delete:
+      operationId: disconnectSharedGithub
+      responses:
+        "200": { description: Disable future fetches for this account; retain immutable review evidence }
+  /shared-assessments/github/files:
+    get:
+      operationId: sharedGithubFiles
+      parameters:
+        - { name: repository, in: query, required: true, schema: { type: string, maxLength: 200 } }
+        - { name: ref, in: query, required: true, schema: { type: string, maxLength: 200 } }
+      responses:
+        "200": { description: Immutable commit and complete bounded supported-file listing; truncated trees rejected }
+  /shared-assessments/entities/{id}/source:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: mapSharedGithubSource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedSourceMapping" }
+      responses:
+        "200": { description: New draft revision with sealed source metadata and unaccepted deterministic proposal }
+  /shared-assessments/entities/{id}/source/{index}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: index, in: path, required: true, schema: { type: integer, minimum: 0, maximum: 9 } }
+    get:
+      operationId: readSharedSource
+      responses:
+        "200": { description: Membership-checked immutable source text and provenance }
+  /shared-assessments/entities/{id}/evaluate:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: evaluateSharedSource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedVersion" }
+      responses:
+        "200": { description: Unaccepted deterministic proposal with file/line evidence; no execution or AI transfer }
+  /shared-assessments/company-templates:
+    get:
+      operationId: listCompanyTemplates
+      responses:
+        "200": { description: Company template metadata and private-storage availability }
+    post:
+      operationId: uploadCompanyTemplate
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/CompanyTemplateUpload" }
+      responses:
+        "200": { description: "Validated DOCX version; Admin only, maximum 4 MB; old versions retained" }
+  /shared-assessments/company-templates/{id}/preview:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: previewCompanyTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedVersion" }
+      responses:
+        "200":
+          description: Fictional populated preview; Admin only
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /shared-assessments/company-templates/{id}/default:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: selectCompanyTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedVersion" }
+      responses:
+        "200": { description: Previewed company default selected atomically; Admin only }
+  /shared-assessments/approvals/list:
+    get:
+      operationId: listSharedApprovals
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 4096 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: kind, in: query, schema: { type: string, enum: [all, object, interface], default: all } }
+        - { name: showSuperseded, in: query, schema: { type: string, enum: ["true", "false"], default: "false" } }
+      responses:
+        "200":
+          description: Member-visible approvals ordered by descending approval time and ID. Cursors are bound to filters; refresh without a cursor for newest approvals.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApprovalPage" }
+        "400": { description: Invalid filters or cursor }
+  /shared-assessments/approvals/download:
+    post:
+      operationId: downloadSharedApprovals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApprovedDownload" }
+      responses:
+        "200":
+          description: Sealed approved DOCX or complete ZIP; up to 50 files and 40 MB; membership and export permission checked
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
   /clean-core/knowledge/cleanup:
     get:
       operationId: getKnowledgeCleanup
@@ -484,6 +801,237 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    ReviewNotificationPage:
+      type: object
+      required: [notifications, nextCursor]
+      properties:
+        notifications: { type: array, items: { $ref: "#/components/schemas/ReviewNotification" } }
+        nextCursor:
+          type: [string, "null"]
+          description: Exclusive cursor for older matching alerts, or null when no more remain. Not an unread total or a snapshot; current access and read state are checked on each request.
+    ReviewNotificationPreference:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    ReviewNotification:
+      type: object
+      required: [id, assessmentId, entityId, message, createdAt, read]
+      properties:
+        id: { type: string }
+        assessmentId: { type: string, format: uuid }
+        entityId: { type: string, format: uuid }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+        read: { type: boolean }
+    ApprovalPage:
+      type: object
+      required: [approvals, pageCursor, nextCursor]
+      properties:
+        approvals:
+          type: array
+          items: { $ref: "#/components/schemas/ArchivedApproval" }
+        pageCursor: { type: ["string", "null"] }
+        nextCursor: { type: ["string", "null"] }
+    ArchivedApproval:
+      type: object
+      required: [id, entity_id, version, approver, approved_at, kind, name, assessment_id, assessment_name, superseded, template_name, template_version]
+      properties:
+        id: { type: string, format: uuid }
+        entity_id: { type: string, format: uuid }
+        version: { type: integer }
+        approver: { type: string }
+        approved_at: { type: string }
+        kind: { type: string, enum: [object, interface] }
+        name: { type: string }
+        assessment_id: { type: string, format: uuid }
+        assessment_name: { type: string }
+        superseded: { type: boolean }
+        template_name: { type: ["string", "null"] }
+        template_version: { type: ["integer", "null"] }
+    SharedContent:
+      type: object
+      additionalProperties: false
+      required: [classification, classificationExplanation, disposition, narrative, complexitySize, recommendation, recommendationRationale, prerequisites, cautions, alternatives, validationQuestions, mitigation, mitigationValidation]
+      properties:
+        classification: { type: [string, "null"], enum: [A, B, C, D, null] }
+        classificationExplanation: { type: string, maxLength: 20000 }
+        disposition: { type: [string, "null"], enum: [keep, retire, refactor, redesign, move-to-btp, null] }
+        narrative: { type: string, maxLength: 20000 }
+        complexitySize: { type: [string, "null"], enum: [XS, S, M, L, XL, XXL, null] }
+        recommendation: { type: string, maxLength: 20000 }
+        recommendationRationale: { type: string, maxLength: 20000 }
+        prerequisites: { type: string, maxLength: 20000 }
+        cautions: { type: string, maxLength: 20000 }
+        alternatives: { type: string, maxLength: 20000 }
+        validationQuestions: { type: string, maxLength: 20000 }
+        mitigation: { type: string, maxLength: 20000 }
+        mitigationValidation: { type: string, maxLength: 20000 }
+    SharedAssessment:
+      type: object
+      required: [id, name, system, target_release, owner_id]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        system: { type: string }
+        target_release: { type: string }
+        owner_id: { type: string }
+        access: { type: string, enum: [edit, review, read] }
+        count: { type: string }
+    SharedEntity:
+      type: object
+      required: [id, assessment_id, entity_key, kind, name, content, evidence, sources, version, state]
+      properties:
+        id: { type: string, format: uuid }
+        assessment_id: { type: string, format: uuid }
+        entity_key: { type: string }
+        kind: { type: string, enum: [object, interface] }
+        name: { type: string }
+        content: { $ref: "#/components/schemas/SharedContent" }
+        evidence: { type: object, additionalProperties: true }
+        sources: { type: array, items: { type: object, additionalProperties: true } }
+        version: { type: integer }
+        state: { type: string, enum: [Draft, Submitted, Approved, Changes requested] }
+        submitter_id: { type: [string, "null"] }
+        reviewer_id: { type: [string, "null"] }
+    SharedEntityEnvelope:
+      type: object
+      required: [entity]
+      properties:
+        entity: { $ref: "#/components/schemas/SharedEntity" }
+    SharedPublish:
+      type: object
+      additionalProperties: false
+      required: [importKey, name, system, targetRelease, entities]
+      properties:
+        importKey: { type: string, minLength: 1, maxLength: 200 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        system: { type: string, minLength: 1, maxLength: 100 }
+        targetRelease: { type: string, enum: [S4HANA_2025] }
+        entities:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          items:
+            type: object
+            required: [key, kind, name, content, evidence]
+            properties:
+              key: { type: string, minLength: 1, maxLength: 1000 }
+              kind: { type: string, enum: [object, interface] }
+              name: { type: string, minLength: 1, maxLength: 500 }
+              content: { $ref: "#/components/schemas/SharedContent" }
+              evidence: { type: object, additionalProperties: true }
+    WorkspaceRecord:
+      type: object
+      additionalProperties: false
+      required: [key, kind, name, content, evidence]
+      properties:
+        key: { type: string, minLength: 1, maxLength: 1000 }
+        kind: { type: string, enum: [object, interface] }
+        name: { type: string, minLength: 1, maxLength: 500 }
+        content: { $ref: "#/components/schemas/SharedContent" }
+        evidence: { type: object, additionalProperties: true }
+    WorkspaceReviewInput:
+      type: object
+      additionalProperties: false
+      required: [importKey, name, system, targetRelease, record, expectedVersion, reviewerId, shareWithReviewer, requestId]
+      properties:
+        importKey: { type: string, minLength: 1, maxLength: 200 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        system: { type: string, minLength: 1, maxLength: 100 }
+        targetRelease: { type: string, enum: [S4HANA_2025] }
+        record: { $ref: "#/components/schemas/WorkspaceRecord" }
+        expectedVersion: { type: [integer, "null"], minimum: 1 }
+        reviewerId: { type: string, minLength: 1, maxLength: 200 }
+        shareWithReviewer: { type: boolean }
+        requestId: { type: string, format: uuid }
+    WorkspaceReviewer:
+      type: object
+      required: [id, username, member, eligible]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        member: { type: boolean }
+        eligible: { type: boolean }
+    WorkspaceReviewResult:
+      type: object
+      required: [assessment, entity]
+      properties:
+        assessment: { $ref: "#/components/schemas/SharedAssessment" }
+        entity: { $ref: "#/components/schemas/SharedEntity" }
+    WorkspaceReviewContext:
+      type: object
+      required: [assessment, entity, reviewers]
+      properties:
+        assessment:
+          anyOf:
+            - { $ref: "#/components/schemas/SharedAssessment" }
+            - { type: "null" }
+        entity:
+          anyOf:
+            - { $ref: "#/components/schemas/SharedEntity" }
+            - { type: "null" }
+        reviewers: { type: array, items: { $ref: "#/components/schemas/WorkspaceReviewer" } }
+    SharedVersion:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+    SharedEdit:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, content]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        content: { $ref: "#/components/schemas/SharedContent" }
+    SharedAction:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, action, requestId]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        action: { type: string, enum: [submit, approve, request-changes] }
+        requestId: { type: string, format: uuid }
+        comment: { type: string, maxLength: 20000, default: "" }
+    SharedMembership:
+      type: object
+      additionalProperties: false
+      required: [userId, access]
+      properties:
+        userId: { type: string, minLength: 1, maxLength: 200 }
+        access: { type: [string, "null"], enum: [read, edit, review, null] }
+    SharedAssignment:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, reviewerId]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        reviewerId: { type: string, minLength: 1, maxLength: 200 }
+    SharedSourceMapping:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, repository, commit, path]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        repository: { type: string, maxLength: 200 }
+        commit: { type: string, pattern: "^[0-9a-f]{40}$" }
+        path: { type: string, minLength: 1, maxLength: 1000 }
+    CompanyTemplateUpload:
+      type: object
+      required: [name, file]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        file: { type: string, format: binary }
+        replaceId: { type: string, format: uuid }
+        expectedVersion: { type: integer, minimum: 1 }
+    ApprovedDownload:
+      type: object
+      additionalProperties: false
+      required: [ids]
+      properties:
+        ids: { type: array, minItems: 1, maxItems: 50, items: { type: string, format: uuid } }
     KnowledgeCleanupInput:
       type: object
       required: [dryRun]
@@ -569,6 +1117,7 @@ components:
         target_system: { type: string }
         target_release: { type: string }
         classification: { type: string }
+        complexity: { type: string }
         severity: { type: string }
         rationale: { type: string }
         mitigation: { type: string }

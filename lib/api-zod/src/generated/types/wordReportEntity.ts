@@ -24,6 +24,7 @@ export interface WordReportEntity {
   target_system?: string;
   target_release?: string;
   classification?: string;
+  complexity?: string;
   severity?: string;
   rationale?: string;
   mitigation?: string;

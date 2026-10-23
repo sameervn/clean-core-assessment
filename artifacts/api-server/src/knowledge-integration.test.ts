@@ -53,14 +53,14 @@ test("private upload → consented cited draft → replacement/deletion with liv
     const ticket = await request("/clean-core/knowledge/uploads", "POST", metadata, owner);
     assert.equal(ticket.status, 200, JSON.stringify(ticket.data));
     const id = ticket.data.id;
-    assert.equal((await fetch(ticket.data.uploadUrl, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: text })).ok, true);
+    assert.equal((await fetch(new URL(ticket.data.uploadUrl, base), { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: text })).ok, true);
     assert.equal((await request(`/clean-core/knowledge/${id}/process`, "POST", {}, other)).status, 403);
     const processed = await request(`/clean-core/knowledge/${id}/process`, "POST", {}, owner);
     assert.equal(processed.status, 200, JSON.stringify(processed.data));
     assert.equal(processed.data.status, "ready");
     assert.equal((await request(`/clean-core/knowledge/${id}/file/1`, "GET", undefined, reviewer)).data, text);
     // The original signed PUT cannot mutate the sealed indexed/served version.
-    await fetch(ticket.data.uploadUrl, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: "overwritten staging" });
+    await fetch(new URL(ticket.data.uploadUrl, base), { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: "overwritten staging" });
     assert.equal((await request(`/clean-core/knowledge/${id}/file/1`, "GET", undefined, reviewer)).data, text);
     const summary = { kind: "object", classification: "B", recommendation: "released-developer", confidence: "high", targetRelease: "S4HANA_2025" };
     const input = { summary, mode: "knowledge-only" };
@@ -77,7 +77,7 @@ test("private upload → consented cited draft → replacement/deletion with liv
     assert.equal(explained.data.sources[0].version, 1);
     assert.equal(explained.data.sources[0].text, undefined, "Accepted metadata must not retain excerpts");
     const replacement = await request("/clean-core/knowledge/uploads", "POST", { ...metadata, replaceId: id, expectedVersion: 1 }, owner);
-    await fetch(replacement.data.uploadUrl, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: text });
+    await fetch(new URL(replacement.data.uploadUrl, base), { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: text });
     assert.equal((await request(`/clean-core/knowledge/${replacement.data.id}/process`, "POST", {}, owner)).data.version, 2);
     assert.equal((await request("/clean-core/ai/explain", "POST", consent, owner)).status, 409);
     assert.equal((await request(`/clean-core/knowledge/${id}/file/1`, "GET", undefined, reviewer)).status, 410);

@@ -15,14 +15,15 @@ export function portableUploadUrl(path: string) {
 export const uploadRouter = Router();
 uploadRouter.put("/:token", raw({ type: "application/octet-stream", limit: 8 * 1024 * 1024 }), async (req, res) => {
   try {
-    const token = String(req.params.token);
+    if (typeof req.params.token !== "string" || Object.keys(req.query).length || !req.is("application/octet-stream")) throw new Error();
+    const token = req.params.token;
     if (token.length > 4096) throw new Error();
     const [payload, supplied, extra] = token.split(".");
     const expected = signature(payload);
     if (extra || !supplied || supplied.length !== expected.length || !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) throw new Error();
     const value = JSON.parse(Buffer.from(payload, "base64url").toString());
     if (!Number.isFinite(value.expires) || value.expires < Date.now() || value.expires > Date.now() + 300_000) throw new Error();
-    if (!Buffer.isBuffer(req.body) || !req.body.length) throw new Error();
+    if (!Buffer.isBuffer(req.body) || !req.body.length || req.body.length > 8 * 1024 * 1024) throw new Error();
     const storage = portableStorage();
     if (!storage) throw new Error();
     await storage.put(value.path, req.body);
