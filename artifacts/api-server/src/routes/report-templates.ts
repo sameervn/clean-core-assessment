@@ -7,12 +7,13 @@ import { AiError } from "../assessment-ai";
 import { storageConfigured } from "../knowledge/storage";
 import { reference, example, fields } from "../reports/contract.mjs";
 import { processWord } from "../reports/process";
-import { requestLimit } from "../request-limits";
+import { rateLimit } from "express-rate-limit";
+import { requestLimit, requestLimitOptions, requestLimitFailure } from "../request-limits";
 import { fresh, owned, locked, view, version, startUpload, finishUpload, templateBytes, recheckTemplate } from "../reports/service";
 
 export const reportTemplateRouter = Router();
 reportTemplateRouter.use(requireSession);
-reportTemplateRouter.use(requestLimit("personal-templates", 120, true));
+reportTemplateRouter.use(rateLimit(requestLimitOptions("personal-templates", 120, true)), requestLimitFailure);
 const expensiveReports = requestLimit("personal-report-render", 20, true);
 // Includes sample generation, upload validation, previews and rendering.
 reportTemplateRouter.use((req, res, next) => {

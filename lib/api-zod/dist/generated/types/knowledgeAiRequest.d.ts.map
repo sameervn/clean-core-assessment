@@ -1,0 +1,1 @@
+{"version":3,"file":"knowledgeAiRequest.d.ts","sourceRoot":"","sources":["../../../src/generated/types/knowledgeAiRequest.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,0BAA0B,EAAE,MAAM,8BAA8B,CAAC;AAC/E,OAAO,KAAK,EAAE,sBAAsB,EAAE,MAAM,0BAA0B,CAAC;AAEvE,MAAM,WAAW,kBAAkB;IACjC,OAAO,EAAE,0BAA0B,CAAC;IACpC,IAAI,EAAE,sBAAsB,CAAC;CAC9B"}

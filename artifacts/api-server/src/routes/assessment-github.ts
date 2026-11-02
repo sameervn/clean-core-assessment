@@ -1,4 +1,6 @@
 import { Router, type RequestHandler } from "express";
+import { rateLimit } from "express-rate-limit";
+import { requestLimitOptions, requestLimitFailure } from "../request-limits";
 import { z } from "zod";
 import { pool } from "@workspace/db";
 import { requireSession } from "../auth/middleware";
@@ -23,6 +25,8 @@ async function groundedProposal(sources: Array<{ path: string; code: string }>, 
 }
 
 export const assessmentGithubRouter = Router();
+assessmentGithubRouter.use(["/github", "/entities/:id/source", "/entities/:id/evaluate"],
+  rateLimit(requestLimitOptions("assessment-github", 120, true)), requestLimitFailure);
 assessmentGithubRouter.use(requireSession);
 const wrap = (fn: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await fn(req, res, next); }

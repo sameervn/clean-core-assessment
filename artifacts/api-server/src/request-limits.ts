@@ -43,20 +43,29 @@ export function httpLimiterProbe(env: Record<string, string | undefined> = proce
   return config ? new SharedRequestStore(config, "api").probe() : Promise.resolve();
 }
 
-export function requestLimit(scope: string, limit: number, account = false, windowMs = 60_000, store?: Store): RequestHandler {
+export function requestLimitOptions(scope: string, limit: number, account = false, windowMs = 60_000, store?: Store): Partial<Options> {
   const config = store ? undefined : requestStoreConfig(process.env);
-  const middleware = rateLimit({
+  return {
     windowMs, limit, store: store ?? (config ? new SharedRequestStore(config, scope) : new BoundedRequestStore()),
     passOnStoreError: false,
     // Never use forwarded headers directly. Express defaults to trust proxy=false.
     keyGenerator: req => account && req.identity ? `account:${req.identity.user.id}` : ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? "unknown"),
     standardHeaders: "draft-8", legacyHeaders: false,
     message: { message: "Too many requests. Retry after the indicated delay." },
-  });
+  };
+}
+
+/** Install immediately after a limiter, before downstream handlers. */
+export const requestLimitFailure: import("express").ErrorRequestHandler = (_error, _req, res, _next) => {
+  // No local fallback, uncertain-write retries, or remote error details.
+  res.setHeader("Retry-After", "1");
+  res.status(503).json({ message: "Request limits temporarily unavailable. Try again shortly." });
+};
+
+export function requestLimit(scope: string, limit: number, account = false, windowMs = 60_000, store?: Store): RequestHandler {
+  const middleware = rateLimit(requestLimitOptions(scope, limit, account, windowMs, store));
   return (req, res, next) => middleware(req, res, error => {
     if (!error) { next(); return; }
-    // No per-process fallback, retries of uncertain writes, or remote error text.
-    res.setHeader("Retry-After", "1");
-    res.status(503).json({ message: "Request limits temporarily unavailable. Try again shortly." });
+    requestLimitFailure(error, req, res, next);
   });
 }

@@ -1,0 +1,1 @@
+{"version":3,"file":"approvalPage.d.ts","sourceRoot":"","sources":["../../../src/generated/types/approvalPage.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,gBAAgB,EAAE,MAAM,oBAAoB,CAAC;AAE3D,MAAM,WAAW,YAAY;IAC3B,SAAS,EAAE,gBAAgB,EAAE,CAAC;IAC9B,gBAAgB;IAChB,UAAU,EAAE,MAAM,GAAG,IAAI,CAAC;IAC1B,gBAAgB;IAChB,UAAU,EAAE,MAAM,GAAG,IAAI,CAAC;CAC3B"}

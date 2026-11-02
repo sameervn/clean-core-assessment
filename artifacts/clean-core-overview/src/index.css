@@ -1,0 +1,56 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-primary: var(--slide-primary);
+  --color-accent: var(--slide-accent);
+  --color-bg: var(--slide-bg);
+  --color-text: var(--slide-text);
+  --color-muted: var(--slide-muted);
+  --font-display: var(--font-display-family);
+  --font-body: var(--font-body-family);
+}
+
+:root {
+  /* Replace these with brand colors */
+  --slide-primary: #087eaa;
+  --slide-accent: #f2ae00;
+  --slide-bg: #fefefe;
+  --slide-text: #0f172a;
+  --slide-muted: #072259;
+  --font-display-family: 'Source Sans 3', sans-serif;
+  --font-body-family: 'Source Sans 3', sans-serif;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--slide-bg);
+  color: var(--slide-text);
+}
+
+.slide {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.slide-viewer {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.workflow > div {
+  margin-bottom: 0.7vh;
+}
+
+.workflow > div > div {
+  line-height: 1.05;
+}

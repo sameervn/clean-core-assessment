@@ -1,0 +1,28 @@
+kind = "slides"
+previewPath = "/clean-core-overview/"
+title = "Clean Core Assessment Accelerator"
+description = "Single-slide YASH overview of the Clean Core Assessment Accelerator, matching the supplied branded reference."
+version = "1.0.0"
+id = "artifacts/clean-core-overview"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/clean-core-overview/" ]
+localPort = 24875
+
+[services.development]
+run = "pnpm --filter @workspace/clean-core-overview run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/clean-core-overview", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/clean-core-overview/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24875"
+BASE_PATH = "/clean-core-overview/"

@@ -1,9 +1,10 @@
 import { Router, static as staticFiles, type Express } from "express";
+import { rateLimit } from "express-rate-limit";
 import { resolve, extname } from "node:path";
 import { pool } from "@workspace/db";
 import { probeStorage } from "./knowledge/storage";
 import { aiLimiterFromEnv } from "./ai-limiter";
-import { requestLimit, httpLimiterProbe, validateRequestLimits } from "./request-limits";
+import { requestLimitOptions, requestLimitFailure, httpLimiterProbe, validateRequestLimits } from "./request-limits";
 
 let stopping = false;
 export function markStopping() { stopping = true; }
@@ -39,7 +40,7 @@ probes.get("/ready", async (_req, res) => {
 export function productionFrontend(app: Express) {
   if (!process.env.CC_STATIC_DIR) return;
   const directory = resolve(process.env.CC_STATIC_DIR);
-  app.use(requestLimit("static", 600));
+  app.use(rateLimit(requestLimitOptions("static", 600)), requestLimitFailure);
   app.use(staticFiles(directory, { index: false }));
   app.get("/{*path}", (req, res, next) => {
     if (extname(req.path) || !req.accepts("html")) { next(); return; }

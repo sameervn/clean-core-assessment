@@ -6,124 +6,1108 @@
  * OpenAPI spec version: 0.1.0
  */
 import * as zod from 'zod';
-export declare const GetLocalSessionResponse: zod.ZodObject<{
-    user: zod.ZodUnion<[zod.ZodObject<{
+export declare const GetReviewNotificationPreferencesResponse: zod.ZodObject<{
+    enabled: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const UpdateReviewNotificationPreferencesBody: zod.ZodObject<{
+    enabled: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const UpdateReviewNotificationPreferencesResponse: zod.ZodObject<{
+    enabled: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const listReviewNotificationsQueryCursorMax = 19;
+export declare const listReviewNotificationsQueryCursorRegExp: RegExp;
+export declare const listReviewNotificationsQueryFilterDefault = "all";
+export declare const ListReviewNotificationsQueryParams: zod.ZodObject<{
+    cursor: zod.ZodOptional<zod.z.ZodCoercedString<unknown>>;
+    filter: zod.ZodDefault<zod.ZodEnum<{
+        all: "all";
+        unread: "unread";
+    }>>;
+}, zod.z.core.$strip>;
+export declare const ListReviewNotificationsResponse: zod.ZodObject<{
+    notifications: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodUUID;
+        entityId: zod.ZodUUID;
+        message: zod.ZodString;
+        createdAt: zod.z.ZodCoercedDate<unknown>;
+        read: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+    nextCursor: zod.ZodNullable<zod.ZodString>;
+}, zod.z.core.$strip>;
+export declare const readReviewNotificationPathNotificationIdRegExp: RegExp;
+export declare const ReadReviewNotificationParams: zod.ZodObject<{
+    notificationId: zod.z.ZodCoercedString<unknown>;
+}, zod.z.core.$strip>;
+export declare const ReadReviewNotificationResponse: zod.ZodUnknown;
+export declare const ListSharedAssessmentsResponse: zod.ZodObject<{
+    assessments: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodUUID;
+        name: zod.ZodString;
+        system: zod.ZodString;
+        target_release: zod.ZodString;
+        owner_id: zod.ZodString;
+        access: zod.ZodOptional<zod.ZodEnum<{
+            read: "read";
+            edit: "edit";
+            review: "review";
+        }>>;
+        count: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const publishSharedAssessmentBodyImportKeyMax = 200;
+export declare const publishSharedAssessmentBodyNameMax = 160;
+export declare const publishSharedAssessmentBodySystemMax = 100;
+export declare const publishSharedAssessmentBodyEntitiesItemKeyMax = 1000;
+export declare const publishSharedAssessmentBodyEntitiesItemNameMax = 500;
+export declare const publishSharedAssessmentBodyEntitiesItemContentClassificationExplanationMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentNarrativeMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentRecommendationMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentRecommendationRationaleMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentPrerequisitesMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentCautionsMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentAlternativesMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentValidationQuestionsMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentMitigationMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesItemContentMitigationValidationMax = 20000;
+export declare const publishSharedAssessmentBodyEntitiesMax = 5000;
+export declare const PublishSharedAssessmentBody: zod.ZodObject<{
+    importKey: zod.ZodString;
+    name: zod.ZodString;
+    system: zod.ZodString;
+    targetRelease: zod.ZodEnum<{
+        S4HANA_2025: "S4HANA_2025";
+    }>;
+    entities: zod.ZodArray<zod.ZodObject<{
+        key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const PublishSharedAssessmentResponse: zod.ZodObject<{
+    assessment: zod.ZodObject<{
+        id: zod.ZodUUID;
+        name: zod.ZodString;
+        system: zod.ZodString;
+        target_release: zod.ZodString;
+        owner_id: zod.ZodString;
+        access: zod.ZodOptional<zod.ZodEnum<{
+            read: "read";
+            edit: "edit";
+            review: "review";
+        }>>;
+        count: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>;
+    existing: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const getWorkspaceReviewQueryImportKeyMax = 200;
+export declare const getWorkspaceReviewQueryKeyMax = 1000;
+export declare const GetWorkspaceReviewQueryParams: zod.ZodObject<{
+    importKey: zod.z.ZodCoercedString<unknown>;
+    key: zod.z.ZodCoercedString<unknown>;
+}, zod.z.core.$strip>;
+export declare const getWorkspaceReviewResponseEntityOneContentClassificationExplanationMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentNarrativeMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentRecommendationMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentRecommendationRationaleMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentPrerequisitesMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentCautionsMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentAlternativesMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentValidationQuestionsMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentMitigationMax = 20000;
+export declare const getWorkspaceReviewResponseEntityOneContentMitigationValidationMax = 20000;
+export declare const GetWorkspaceReviewResponse: zod.ZodObject<{
+    assessment: zod.ZodUnion<readonly [zod.ZodObject<{
+        id: zod.ZodUUID;
+        name: zod.ZodString;
+        system: zod.ZodString;
+        target_release: zod.ZodString;
+        owner_id: zod.ZodString;
+        access: zod.ZodOptional<zod.ZodEnum<{
+            read: "read";
+            edit: "edit";
+            review: "review";
+        }>>;
+        count: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>, zod.ZodNull]>;
+    entity: zod.ZodUnion<readonly [zod.ZodObject<{
+        id: zod.ZodUUID;
+        assessment_id: zod.ZodUUID;
+        entity_key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+        sources: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+        version: zod.ZodInt;
+        state: zod.ZodEnum<{
+            Draft: "Draft";
+            Submitted: "Submitted";
+            Approved: "Approved";
+            "Changes requested": "Changes requested";
+        }>;
+        submitter_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    }, zod.z.core.$strip>, zod.ZodNull]>;
+    reviewers: zod.ZodArray<zod.ZodObject<{
         id: zod.ZodString;
         username: zod.ZodString;
-        role: zod.ZodEnum<["Admin", "Developer", "Reviewer"]>;
+        member: zod.ZodBoolean;
+        eligible: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const prepareWorkspaceReviewBodyImportKeyMax = 200;
+export declare const prepareWorkspaceReviewBodyNameMax = 160;
+export declare const prepareWorkspaceReviewBodySystemMax = 100;
+export declare const prepareWorkspaceReviewBodyRecordKeyMax = 1000;
+export declare const prepareWorkspaceReviewBodyRecordNameMax = 500;
+export declare const prepareWorkspaceReviewBodyRecordContentClassificationExplanationMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentNarrativeMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentRecommendationMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentRecommendationRationaleMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentPrerequisitesMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentCautionsMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentAlternativesMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentValidationQuestionsMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentMitigationMax = 20000;
+export declare const prepareWorkspaceReviewBodyRecordContentMitigationValidationMax = 20000;
+export declare const prepareWorkspaceReviewBodyReviewerIdMax = 200;
+export declare const PrepareWorkspaceReviewBody: zod.ZodObject<{
+    importKey: zod.ZodString;
+    name: zod.ZodString;
+    system: zod.ZodString;
+    targetRelease: zod.ZodEnum<{
+        S4HANA_2025: "S4HANA_2025";
+    }>;
+    record: zod.ZodObject<{
+        key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+    }, zod.z.core.$strip>;
+    expectedVersion: zod.ZodNullable<zod.ZodInt>;
+    reviewerId: zod.ZodString;
+    shareWithReviewer: zod.ZodBoolean;
+    requestId: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const prepareWorkspaceReviewResponseEntityContentClassificationExplanationMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentNarrativeMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentRecommendationMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentRecommendationRationaleMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentPrerequisitesMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentCautionsMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentAlternativesMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentValidationQuestionsMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentMitigationMax = 20000;
+export declare const prepareWorkspaceReviewResponseEntityContentMitigationValidationMax = 20000;
+export declare const PrepareWorkspaceReviewResponse: zod.ZodObject<{
+    assessment: zod.ZodObject<{
+        id: zod.ZodUUID;
+        name: zod.ZodString;
+        system: zod.ZodString;
+        target_release: zod.ZodString;
+        owner_id: zod.ZodString;
+        access: zod.ZodOptional<zod.ZodEnum<{
+            read: "read";
+            edit: "edit";
+            review: "review";
+        }>>;
+        count: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>;
+    entity: zod.ZodObject<{
+        id: zod.ZodUUID;
+        assessment_id: zod.ZodUUID;
+        entity_key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+        sources: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+        version: zod.ZodInt;
+        state: zod.ZodEnum<{
+            Draft: "Draft";
+            Submitted: "Submitted";
+            Approved: "Approved";
+            "Changes requested": "Changes requested";
+        }>;
+        submitter_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
+export declare const SharedAssessmentAdministrationResponse: zod.ZodUnknown;
+export declare const GetSharedAssessmentParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const getSharedAssessmentResponseEntitiesItemContentClassificationExplanationMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentNarrativeMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentRecommendationMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentRecommendationRationaleMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentPrerequisitesMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentCautionsMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentAlternativesMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentValidationQuestionsMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentMitigationMax = 20000;
+export declare const getSharedAssessmentResponseEntitiesItemContentMitigationValidationMax = 20000;
+export declare const GetSharedAssessmentResponse: zod.ZodObject<{
+    assessment: zod.ZodObject<{
+        id: zod.ZodUUID;
+        name: zod.ZodString;
+        system: zod.ZodString;
+        target_release: zod.ZodString;
+        owner_id: zod.ZodString;
+        access: zod.ZodOptional<zod.ZodEnum<{
+            read: "read";
+            edit: "edit";
+            review: "review";
+        }>>;
+        count: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>;
+    entities: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodUUID;
+        assessment_id: zod.ZodUUID;
+        entity_key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+        sources: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+        version: zod.ZodInt;
+        state: zod.ZodEnum<{
+            Draft: "Draft";
+            Submitted: "Submitted";
+            Approved: "Approved";
+            "Changes requested": "Changes requested";
+        }>;
+        submitter_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    }, zod.z.core.$strip>>;
+    members: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+    events: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+}, zod.z.core.$strip>;
+export declare const UpdateSharedMembershipParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const updateSharedMembershipBodyUserIdMax = 200;
+export declare const UpdateSharedMembershipBody: zod.ZodObject<{
+    userId: zod.ZodString;
+    access: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"read">, zod.ZodLiteral<"edit">, zod.ZodLiteral<"review">, zod.ZodLiteral<null>]>>;
+}, zod.z.core.$strip>;
+export declare const UpdateSharedMembershipResponse: zod.ZodUnknown;
+export declare const SaveSharedEntityParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const saveSharedEntityBodyContentClassificationExplanationMax = 20000;
+export declare const saveSharedEntityBodyContentNarrativeMax = 20000;
+export declare const saveSharedEntityBodyContentRecommendationMax = 20000;
+export declare const saveSharedEntityBodyContentRecommendationRationaleMax = 20000;
+export declare const saveSharedEntityBodyContentPrerequisitesMax = 20000;
+export declare const saveSharedEntityBodyContentCautionsMax = 20000;
+export declare const saveSharedEntityBodyContentAlternativesMax = 20000;
+export declare const saveSharedEntityBodyContentValidationQuestionsMax = 20000;
+export declare const saveSharedEntityBodyContentMitigationMax = 20000;
+export declare const saveSharedEntityBodyContentMitigationValidationMax = 20000;
+export declare const SaveSharedEntityBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+    content: zod.ZodObject<{
+        classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+        classificationExplanation: zod.ZodString;
+        disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+        narrative: zod.ZodString;
+        complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+        recommendation: zod.ZodString;
+        recommendationRationale: zod.ZodString;
+        prerequisites: zod.ZodString;
+        cautions: zod.ZodString;
+        alternatives: zod.ZodString;
+        validationQuestions: zod.ZodString;
+        mitigation: zod.ZodString;
+        mitigationValidation: zod.ZodString;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
+export declare const saveSharedEntityResponseEntityContentClassificationExplanationMax = 20000;
+export declare const saveSharedEntityResponseEntityContentNarrativeMax = 20000;
+export declare const saveSharedEntityResponseEntityContentRecommendationMax = 20000;
+export declare const saveSharedEntityResponseEntityContentRecommendationRationaleMax = 20000;
+export declare const saveSharedEntityResponseEntityContentPrerequisitesMax = 20000;
+export declare const saveSharedEntityResponseEntityContentCautionsMax = 20000;
+export declare const saveSharedEntityResponseEntityContentAlternativesMax = 20000;
+export declare const saveSharedEntityResponseEntityContentValidationQuestionsMax = 20000;
+export declare const saveSharedEntityResponseEntityContentMitigationMax = 20000;
+export declare const saveSharedEntityResponseEntityContentMitigationValidationMax = 20000;
+export declare const SaveSharedEntityResponse: zod.ZodObject<{
+    entity: zod.ZodObject<{
+        id: zod.ZodUUID;
+        assessment_id: zod.ZodUUID;
+        entity_key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+        sources: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+        version: zod.ZodInt;
+        state: zod.ZodEnum<{
+            Draft: "Draft";
+            Submitted: "Submitted";
+            Approved: "Approved";
+            "Changes requested": "Changes requested";
+        }>;
+        submitter_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
+export declare const SharedReviewActionParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const sharedReviewActionBodyCommentDefault = "";
+export declare const sharedReviewActionBodyCommentMax = 20000;
+export declare const SharedReviewActionBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+    action: zod.ZodEnum<{
+        submit: "submit";
+        approve: "approve";
+        "request-changes": "request-changes";
+    }>;
+    requestId: zod.ZodUUID;
+    comment: zod.ZodDefault<zod.ZodString>;
+}, zod.z.core.$strip>;
+export declare const sharedReviewActionResponseEntityContentClassificationExplanationMax = 20000;
+export declare const sharedReviewActionResponseEntityContentNarrativeMax = 20000;
+export declare const sharedReviewActionResponseEntityContentRecommendationMax = 20000;
+export declare const sharedReviewActionResponseEntityContentRecommendationRationaleMax = 20000;
+export declare const sharedReviewActionResponseEntityContentPrerequisitesMax = 20000;
+export declare const sharedReviewActionResponseEntityContentCautionsMax = 20000;
+export declare const sharedReviewActionResponseEntityContentAlternativesMax = 20000;
+export declare const sharedReviewActionResponseEntityContentValidationQuestionsMax = 20000;
+export declare const sharedReviewActionResponseEntityContentMitigationMax = 20000;
+export declare const sharedReviewActionResponseEntityContentMitigationValidationMax = 20000;
+export declare const SharedReviewActionResponse: zod.ZodObject<{
+    entity: zod.ZodObject<{
+        id: zod.ZodUUID;
+        assessment_id: zod.ZodUUID;
+        entity_key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+        sources: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+        version: zod.ZodInt;
+        state: zod.ZodEnum<{
+            Draft: "Draft";
+            Submitted: "Submitted";
+            Approved: "Approved";
+            "Changes requested": "Changes requested";
+        }>;
+        submitter_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
+export declare const AssignSharedReviewerParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const assignSharedReviewerBodyReviewerIdMax = 200;
+export declare const AssignSharedReviewerBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+    reviewerId: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const assignSharedReviewerResponseEntityContentClassificationExplanationMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentNarrativeMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentRecommendationMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentRecommendationRationaleMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentPrerequisitesMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentCautionsMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentAlternativesMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentValidationQuestionsMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentMitigationMax = 20000;
+export declare const assignSharedReviewerResponseEntityContentMitigationValidationMax = 20000;
+export declare const AssignSharedReviewerResponse: zod.ZodObject<{
+    entity: zod.ZodObject<{
+        id: zod.ZodUUID;
+        assessment_id: zod.ZodUUID;
+        entity_key: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        content: zod.ZodObject<{
+            classification: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"A">, zod.ZodLiteral<"B">, zod.ZodLiteral<"C">, zod.ZodLiteral<"D">, zod.ZodLiteral<null>]>>;
+            classificationExplanation: zod.ZodString;
+            disposition: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"keep">, zod.ZodLiteral<"retire">, zod.ZodLiteral<"refactor">, zod.ZodLiteral<"redesign">, zod.ZodLiteral<"move-to-btp">, zod.ZodLiteral<null>]>>;
+            narrative: zod.ZodString;
+            complexitySize: zod.ZodNullable<zod.ZodUnion<readonly [zod.ZodLiteral<"XS">, zod.ZodLiteral<"S">, zod.ZodLiteral<"M">, zod.ZodLiteral<"L">, zod.ZodLiteral<"XL">, zod.ZodLiteral<"XXL">, zod.ZodLiteral<null>]>>;
+            recommendation: zod.ZodString;
+            recommendationRationale: zod.ZodString;
+            prerequisites: zod.ZodString;
+            cautions: zod.ZodString;
+            alternatives: zod.ZodString;
+            validationQuestions: zod.ZodString;
+            mitigation: zod.ZodString;
+            mitigationValidation: zod.ZodString;
+        }, zod.z.core.$strip>;
+        evidence: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
+        sources: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
+        version: zod.ZodInt;
+        state: zod.ZodEnum<{
+            Draft: "Draft";
+            Submitted: "Submitted";
+            Approved: "Approved";
+            "Changes requested": "Changes requested";
+        }>;
+        submitter_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
+export declare const SharedGithubStatusResponse: zod.ZodUnknown;
+export declare const ConnectSharedGithubResponse: zod.ZodUnknown;
+export declare const DisconnectSharedGithubResponse: zod.ZodUnknown;
+export declare const sharedGithubFilesQueryRepositoryMax = 200;
+export declare const sharedGithubFilesQueryRefMax = 200;
+export declare const SharedGithubFilesQueryParams: zod.ZodObject<{
+    repository: zod.z.ZodCoercedString<unknown>;
+    ref: zod.z.ZodCoercedString<unknown>;
+}, zod.z.core.$strip>;
+export declare const SharedGithubFilesResponse: zod.ZodUnknown;
+export declare const MapSharedGithubSourceParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const mapSharedGithubSourceBodyRepositoryMax = 200;
+export declare const mapSharedGithubSourceBodyCommitRegExp: RegExp;
+export declare const mapSharedGithubSourceBodyPathMax = 1000;
+export declare const MapSharedGithubSourceBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+    repository: zod.ZodString;
+    commit: zod.ZodString;
+    path: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const MapSharedGithubSourceResponse: zod.ZodUnknown;
+export declare const readSharedSourcePathIndexMin = 0;
+export declare const readSharedSourcePathIndexMax = 9;
+export declare const ReadSharedSourceParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+    index: zod.z.ZodCoercedNumber<unknown>;
+}, zod.z.core.$strip>;
+export declare const ReadSharedSourceResponse: zod.ZodUnknown;
+export declare const EvaluateSharedSourceParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const EvaluateSharedSourceBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const EvaluateSharedSourceResponse: zod.ZodUnknown;
+export declare const ListCompanyTemplatesResponse: zod.ZodUnknown;
+export declare const uploadCompanyTemplateBodyNameMax = 120;
+export declare const UploadCompanyTemplateBody: zod.ZodObject<{
+    name: zod.ZodString;
+    file: zod.ZodInstanceOf<Blob>;
+    replaceId: zod.ZodOptional<zod.ZodUUID>;
+    expectedVersion: zod.ZodOptional<zod.ZodInt>;
+}, zod.z.core.$strip>;
+export declare const UploadCompanyTemplateResponse: zod.ZodUnknown;
+export declare const PreviewCompanyTemplateParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const PreviewCompanyTemplateBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const PreviewCompanyTemplateResponse: zod.ZodUnknown;
+export declare const SelectCompanyTemplateParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const SelectCompanyTemplateBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const SelectCompanyTemplateResponse: zod.ZodUnknown;
+export declare const listSharedApprovalsQueryLimitDefault = 50;
+export declare const listSharedApprovalsQueryLimitMax = 100;
+export declare const listSharedApprovalsQueryCursorMax = 4096;
+export declare const listSharedApprovalsQuerySearchMax = 200;
+export declare const listSharedApprovalsQueryKindDefault = "all";
+export declare const listSharedApprovalsQueryShowSupersededDefault = "false";
+export declare const ListSharedApprovalsQueryParams: zod.ZodObject<{
+    limit: zod.ZodDefault<zod.z.ZodCoercedNumber<unknown>>;
+    cursor: zod.ZodOptional<zod.z.ZodCoercedString<unknown>>;
+    search: zod.ZodOptional<zod.z.ZodCoercedString<unknown>>;
+    kind: zod.ZodDefault<zod.ZodEnum<{
+        object: "object";
+        all: "all";
+        interface: "interface";
+    }>>;
+    showSuperseded: zod.ZodDefault<zod.ZodEnum<{
+        false: "false";
+        true: "true";
+    }>>;
+}, zod.z.core.$strip>;
+export declare const ListSharedApprovalsResponse: zod.ZodObject<{
+    approvals: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodUUID;
+        entity_id: zod.ZodUUID;
+        version: zod.ZodInt;
+        approver: zod.ZodString;
+        approved_at: zod.ZodString;
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        name: zod.ZodString;
+        assessment_id: zod.ZodUUID;
+        assessment_name: zod.ZodString;
+        superseded: zod.ZodBoolean;
+        template_name: zod.ZodNullable<zod.ZodString>;
+        template_version: zod.ZodNullable<zod.ZodInt>;
+    }, zod.z.core.$strip>>;
+    pageCursor: zod.ZodNullable<zod.ZodString>;
+    nextCursor: zod.ZodNullable<zod.ZodString>;
+}, zod.z.core.$strip>;
+export declare const downloadSharedApprovalsBodyIdsMax = 50;
+export declare const DownloadSharedApprovalsBody: zod.ZodObject<{
+    ids: zod.ZodArray<zod.ZodUUID>;
+}, zod.z.core.$strip>;
+export declare const DownloadSharedApprovalsResponse: zod.ZodUnknown;
+export declare const GetKnowledgeCleanupResponse: zod.ZodObject<{
+    report: zod.ZodUnion<readonly [zod.ZodObject<{
+        dryRun: zod.ZodBoolean;
+        startedAt: zod.ZodString;
+        expiredUploads: zod.ZodInt;
+        scanned: zod.ZodInt;
+        candidates: zod.ZodInt;
+        deleted: zod.ZodInt;
+        protected: zod.ZodInt;
+        failures: zod.ZodInt;
+        hasMore: zod.ZodBoolean;
+    }, zod.z.core.$strip>, zod.ZodNull]>;
+}, zod.z.core.$strip>;
+export declare const RunKnowledgeCleanupBody: zod.ZodObject<{
+    dryRun: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const RunKnowledgeCleanupResponse: zod.ZodObject<{
+    dryRun: zod.ZodBoolean;
+    startedAt: zod.ZodString;
+    expiredUploads: zod.ZodInt;
+    scanned: zod.ZodInt;
+    candidates: zod.ZodInt;
+    deleted: zod.ZodInt;
+    protected: zod.ZodInt;
+    failures: zod.ZodInt;
+    hasMore: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const ListReportTemplatesResponse: zod.ZodObject<{
+    configured: zod.ZodBoolean;
+    activeId: zod.ZodNullable<zod.ZodString>;
+    templates: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        name: zod.ZodString;
+        version: zod.ZodInt;
+        active: zod.ZodBoolean;
+        previewed: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const WordTemplateReferenceResponse: zod.ZodUnknown;
+export declare const DownloadWordTemplateSampleResponse: zod.ZodUnknown;
+export declare const startWordTemplateUploadBodyNameMax = 100;
+export declare const startWordTemplateUploadBodyFilenameRegExp: RegExp;
+export declare const StartWordTemplateUploadBody: zod.ZodObject<{
+    name: zod.ZodString;
+    filename: zod.ZodString;
+    replaceId: zod.ZodOptional<zod.ZodUUID>;
+    expectedVersion: zod.ZodOptional<zod.ZodInt>;
+}, zod.z.core.$strip>;
+export declare const StartWordTemplateUploadResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    uploadUrl: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const ValidateWordTemplateUploadParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const ValidateWordTemplateUploadResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    name: zod.ZodString;
+    version: zod.ZodInt;
+    active: zod.ZodBoolean;
+    previewed: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const UpdateWordTemplateParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const updateWordTemplateBodyNameMax = 100;
+export declare const UpdateWordTemplateBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+    name: zod.ZodOptional<zod.ZodString>;
+    active: zod.ZodOptional<zod.ZodLiteral<true>>;
+}, zod.z.core.$strip>;
+export declare const UpdateWordTemplateResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    name: zod.ZodString;
+    version: zod.ZodInt;
+    active: zod.ZodBoolean;
+    previewed: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const DeleteWordTemplateParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const DeleteWordTemplateBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const DeleteWordTemplateResponse: zod.ZodVoid;
+export declare const PreviewWordTemplateBody: zod.ZodObject<{
+    templateId: zod.ZodString;
+    expectedVersion: zod.ZodOptional<zod.ZodInt>;
+}, zod.z.core.$strip>;
+export declare const PreviewWordTemplateResponse: zod.ZodUnknown;
+export declare const renderWordReportsBodyEntitiesItemEntityIdMax = 2000;
+export declare const renderWordReportsBodyEntitiesItemFindingsMax = 200;
+export declare const renderWordReportsBodyEntitiesItemRecommendationsMax = 200;
+export declare const renderWordReportsBodyEntitiesMax = 50;
+export declare const RenderWordReportsBody: zod.ZodObject<{
+    templateId: zod.ZodString;
+    entities: zod.ZodArray<zod.ZodObject<{
+        entity_id: zod.ZodString;
+        entity_kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        entity_name: zod.ZodOptional<zod.ZodString>;
+        entity_type: zod.ZodOptional<zod.ZodString>;
+        package: zod.ZodOptional<zod.ZodString>;
+        owner: zod.ZodOptional<zod.ZodString>;
+        source_system: zod.ZodOptional<zod.ZodString>;
+        target_system: zod.ZodOptional<zod.ZodString>;
+        target_release: zod.ZodOptional<zod.ZodString>;
+        classification: zod.ZodOptional<zod.ZodString>;
+        complexity: zod.ZodOptional<zod.ZodString>;
+        severity: zod.ZodOptional<zod.ZodString>;
+        rationale: zod.ZodOptional<zod.ZodString>;
+        mitigation: zod.ZodOptional<zod.ZodString>;
+        evidence: zod.ZodOptional<zod.ZodString>;
+        notes: zod.ZodOptional<zod.ZodString>;
+        ai_explanations: zod.ZodOptional<zod.ZodString>;
+        findings: zod.ZodOptional<zod.ZodArray<zod.ZodObject<{
+            text: zod.ZodString;
+            severity: zod.ZodString;
+        }, zod.z.core.$strip>>>;
+        recommendations: zod.ZodOptional<zod.ZodArray<zod.ZodObject<{
+            text: zod.ZodString;
+        }, zod.z.core.$strip>>>;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const RenderWordReportsResponse: zod.ZodUnknown;
+export declare const listKnowledgeQueryQMax = 200;
+export declare const ListKnowledgeQueryParams: zod.ZodObject<{
+    q: zod.ZodOptional<zod.z.ZodCoercedString<unknown>>;
+}, zod.z.core.$strip>;
+export declare const ListKnowledgeResponse: zod.ZodObject<{
+    documents: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        ownerId: zod.ZodString;
+        title: zod.ZodString;
+        release: zod.ZodString;
+        topics: zod.ZodArray<zod.ZodString>;
+        filename: zod.ZodString;
+        version: zod.ZodInt;
+        status: zod.ZodEnum<{
+            "awaiting-upload": "awaiting-upload";
+            processing: "processing";
+            ready: "ready";
+            failed: "failed";
+        }>;
+        error: zod.ZodNullable<zod.ZodString>;
+        createdAt: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    configured: zod.ZodBoolean;
+    message: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const startKnowledgeUploadBodyTitleMax = 200;
+export declare const startKnowledgeUploadBodyReleaseMax = 50;
+export declare const startKnowledgeUploadBodyTopicsItemMax = 40;
+export declare const startKnowledgeUploadBodyTopicsMax = 8;
+export declare const startKnowledgeUploadBodyFilenameMax = 200;
+export declare const startKnowledgeUploadBodySizeMax = 8388608;
+export declare const StartKnowledgeUploadBody: zod.ZodObject<{
+    title: zod.ZodString;
+    release: zod.ZodString;
+    topics: zod.ZodArray<zod.ZodString>;
+    filename: zod.ZodString;
+    size: zod.ZodInt;
+    replaceId: zod.ZodOptional<zod.ZodUUID>;
+    expectedVersion: zod.ZodOptional<zod.ZodInt>;
+}, zod.z.core.$strip>;
+export declare const StartKnowledgeUploadResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    uploadUrl: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const GetKnowledgeDocumentParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const getKnowledgeDocumentResponseTwoPassagesItemSectionMax = 160;
+export declare const getKnowledgeDocumentResponseTwoPassagesItemTextMax = 1400;
+export declare const GetKnowledgeDocumentResponse: zod.ZodIntersection<zod.ZodObject<{
+    id: zod.ZodString;
+    ownerId: zod.ZodString;
+    title: zod.ZodString;
+    release: zod.ZodString;
+    topics: zod.ZodArray<zod.ZodString>;
+    filename: zod.ZodString;
+    version: zod.ZodInt;
+    status: zod.ZodEnum<{
+        "awaiting-upload": "awaiting-upload";
+        processing: "processing";
+        ready: "ready";
+        failed: "failed";
+    }>;
+    error: zod.ZodNullable<zod.ZodString>;
+    createdAt: zod.ZodString;
+}, zod.z.core.$strip>, zod.ZodObject<{
+    canManage: zod.ZodBoolean;
+    passages: zod.ZodArray<zod.ZodObject<{
+        section: zod.ZodString;
+        text: zod.ZodString;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>>;
+export declare const RemoveKnowledgeDocumentParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const RemoveKnowledgeDocumentBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const RemoveKnowledgeDocumentResponse: zod.ZodVoid;
+export declare const ProcessKnowledgeUploadParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const ProcessKnowledgeUploadResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    ownerId: zod.ZodString;
+    title: zod.ZodString;
+    release: zod.ZodString;
+    topics: zod.ZodArray<zod.ZodString>;
+    filename: zod.ZodString;
+    version: zod.ZodInt;
+    status: zod.ZodEnum<{
+        "awaiting-upload": "awaiting-upload";
+        processing: "processing";
+        ready: "ready";
+        failed: "failed";
+    }>;
+    error: zod.ZodNullable<zod.ZodString>;
+    createdAt: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const DownloadKnowledgeFileParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+    version: zod.z.ZodCoercedNumber<unknown>;
+}, zod.z.core.$strip>;
+export declare const DownloadKnowledgeFileResponse: zod.ZodUnknown;
+export declare const previewAssessmentExplanationBodySummaryRecommendationMax = 300;
+export declare const previewAssessmentExplanationBodySummaryTargetReleaseMax = 50;
+export declare const PreviewAssessmentExplanationBody: zod.ZodObject<{
+    summary: zod.ZodObject<{
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        classification: zod.ZodEnum<{
+            A: "A";
+            B: "B";
+            C: "C";
+            D: "D";
+        }>;
+        recommendation: zod.ZodString;
+        confidence: zod.ZodEnum<{
+            unknown: "unknown";
+            low: "low";
+            medium: "medium";
+            high: "high";
+        }>;
+        targetRelease: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>;
+    mode: zod.ZodEnum<{
+        "knowledge-only": "knowledge-only";
+        "allow-fallback": "allow-fallback";
+    }>;
+}, zod.z.core.$strip>;
+export declare const previewAssessmentExplanationResponsePayloadOneSummaryRecommendationMax = 300;
+export declare const previewAssessmentExplanationResponsePayloadOneSummaryTargetReleaseMax = 50;
+export declare const previewAssessmentExplanationResponsePayloadTwoReferencesItemOneTitleMax = 200;
+export declare const previewAssessmentExplanationResponsePayloadTwoReferencesItemOneSectionMax = 160;
+export declare const previewAssessmentExplanationResponsePayloadTwoReferencesItemOneReleaseMax = 50;
+export declare const previewAssessmentExplanationResponsePayloadTwoReferencesItemTwoTextMax = 1400;
+export declare const previewAssessmentExplanationResponsePayloadTwoReferencesMax = 4;
+export declare const previewAssessmentExplanationResponseDiagnosticsCandidatesMax = 24;
+export declare const PreviewAssessmentExplanationResponse: zod.ZodObject<{
+    payload: zod.ZodIntersection<zod.ZodObject<{
+        summary: zod.ZodObject<{
+            kind: zod.ZodEnum<{
+                object: "object";
+                interface: "interface";
+            }>;
+            classification: zod.ZodEnum<{
+                A: "A";
+                B: "B";
+                C: "C";
+                D: "D";
+            }>;
+            recommendation: zod.ZodString;
+            confidence: zod.ZodEnum<{
+                unknown: "unknown";
+                low: "low";
+                medium: "medium";
+                high: "high";
+            }>;
+            targetRelease: zod.ZodOptional<zod.ZodString>;
+        }, zod.z.core.$strip>;
+        mode: zod.ZodEnum<{
+            "knowledge-only": "knowledge-only";
+            "allow-fallback": "allow-fallback";
+        }>;
+    }, zod.z.core.$strip>, zod.ZodObject<{
+        references: zod.ZodArray<zod.ZodIntersection<zod.ZodObject<{
+            id: zod.ZodUUID;
+            title: zod.ZodString;
+            version: zod.ZodInt;
+            section: zod.ZodString;
+            release: zod.ZodString;
+            applicability: zod.ZodEnum<{
+                "target-release": "target-release";
+                general: "general";
+                "other-release": "other-release";
+            }>;
+        }, zod.z.core.$strip>, zod.ZodObject<{
+            text: zod.ZodString;
+        }, zod.z.core.$strip>>>;
+        disclosure: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    token: zod.ZodString;
+    canGenerate: zod.ZodBoolean;
+    diagnostics: zod.ZodOptional<zod.ZodObject<{
+        terms: zod.ZodArray<zod.ZodString>;
+        targetRelease: zod.ZodString;
+        requiredTermMatches: zod.ZodInt;
+        candidateLimit: zod.ZodInt;
+        matchingPassages: zod.ZodInt;
+        applicableCharacters: zod.ZodInt;
+        requiredCharacters: zod.ZodInt;
+        candidates: zod.ZodArray<zod.ZodObject<{
+            id: zod.ZodString;
+            title: zod.ZodString;
+            section: zod.ZodString;
+            release: zod.ZodString;
+            matchedTerms: zod.ZodArray<zod.ZodString>;
+            reason: zod.ZodEnum<{
+                selected: "selected";
+                "insufficient-coverage": "insufficient-coverage";
+                "document-limit": "document-limit";
+                "excerpt-limit": "excerpt-limit";
+            }>;
+        }, zod.z.core.$strip>>;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const listAccountAuditQueryPageDefault = 1;
+export declare const listAccountAuditQueryPageMax = 100000;
+export declare const ListAccountAuditQueryParams: zod.ZodObject<{
+    page: zod.ZodDefault<zod.z.ZodCoercedNumber<unknown>>;
+    action: zod.ZodOptional<zod.ZodEnum<{
+        bootstrap: "bootstrap";
+        user_created: "user_created";
+        user_updated: "user_updated";
+        role_changed: "role_changed";
+        permissions_changed: "permissions_changed";
+        user_activated: "user_activated";
+        user_deactivated: "user_deactivated";
+        password_reset: "password_reset";
+        password_changed: "password_changed";
+        login: "login";
+        login_failed: "login_failed";
+        logout: "logout";
+    }>>;
+    from: zod.ZodOptional<zod.ZodDate>;
+    to: zod.ZodOptional<zod.ZodDate>;
+}, zod.z.core.$strip>;
+export declare const ListAccountAuditResponse: zod.ZodObject<{
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        actorId: zod.ZodNullable<zod.ZodString>;
+        actorUsername: zod.ZodNullable<zod.ZodString>;
+        targetId: zod.ZodNullable<zod.ZodString>;
+        targetUsername: zod.ZodNullable<zod.ZodString>;
+        action: zod.ZodEnum<{
+            bootstrap: "bootstrap";
+            user_created: "user_created";
+            user_updated: "user_updated";
+            role_changed: "role_changed";
+            permissions_changed: "permissions_changed";
+            user_activated: "user_activated";
+            user_deactivated: "user_deactivated";
+            password_reset: "password_reset";
+            password_changed: "password_changed";
+            login: "login";
+            login_failed: "login_failed";
+            logout: "logout";
+        }>;
+        createdAt: zod.z.ZodCoercedDate<unknown>;
+    }, zod.z.core.$strip>>;
+    page: zod.ZodInt;
+    hasMore: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const GetLocalSessionResponse: zod.ZodObject<{
+    user: zod.ZodUnion<readonly [zod.ZodObject<{
+        id: zod.ZodString;
+        username: zod.ZodString;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
         active: zod.ZodBoolean;
         mustChangePassword: zod.ZodBoolean;
-        permissions: zod.ZodArray<zod.ZodString, "many">;
+        permissions: zod.ZodArray<zod.ZodString>;
         overrides: zod.ZodRecord<zod.ZodString, zod.ZodBoolean>;
-    }, "strip", zod.ZodTypeAny, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }>, zod.ZodNull]>;
+    }, zod.z.core.$strip>, zod.ZodNull]>;
     csrfToken: zod.ZodOptional<zod.ZodString>;
     setupRequired: zod.ZodOptional<zod.ZodBoolean>;
-}, "strip", zod.ZodTypeAny, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    } | null;
-    csrfToken?: string | undefined;
-    setupRequired?: boolean | undefined;
-}, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    } | null;
-    csrfToken?: string | undefined;
-    setupRequired?: boolean | undefined;
-}>;
+}, zod.z.core.$strip>;
 export declare const loginLocalUserBodyUsernameMax = 64;
 export declare const loginLocalUserBodyPasswordMax = 128;
 export declare const LoginLocalUserBody: zod.ZodObject<{
     username: zod.ZodString;
     password: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    username: string;
-    password: string;
-}, {
-    username: string;
-    password: string;
-}>;
+}, zod.z.core.$strip>;
 export declare const LoginLocalUserResponse: zod.ZodObject<{
-    user: zod.ZodUnion<[zod.ZodObject<{
+    user: zod.ZodUnion<readonly [zod.ZodObject<{
         id: zod.ZodString;
         username: zod.ZodString;
-        role: zod.ZodEnum<["Admin", "Developer", "Reviewer"]>;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
         active: zod.ZodBoolean;
         mustChangePassword: zod.ZodBoolean;
-        permissions: zod.ZodArray<zod.ZodString, "many">;
+        permissions: zod.ZodArray<zod.ZodString>;
         overrides: zod.ZodRecord<zod.ZodString, zod.ZodBoolean>;
-    }, "strip", zod.ZodTypeAny, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }>, zod.ZodNull]>;
+    }, zod.z.core.$strip>, zod.ZodNull]>;
     csrfToken: zod.ZodOptional<zod.ZodString>;
     setupRequired: zod.ZodOptional<zod.ZodBoolean>;
-}, "strip", zod.ZodTypeAny, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    } | null;
-    csrfToken?: string | undefined;
-    setupRequired?: boolean | undefined;
-}, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    } | null;
-    csrfToken?: string | undefined;
-    setupRequired?: boolean | undefined;
-}>;
+}, zod.z.core.$strip>;
 export declare const LogoutLocalUserResponse: zod.ZodUnknown;
 export declare const changeLocalPasswordBodyCurrentPasswordMax = 128;
 export declare const changeLocalPasswordBodyNewPasswordMin = 14;
@@ -131,75 +1115,29 @@ export declare const changeLocalPasswordBodyNewPasswordMax = 128;
 export declare const ChangeLocalPasswordBody: zod.ZodObject<{
     currentPassword: zod.ZodString;
     newPassword: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    currentPassword: string;
-    newPassword: string;
-}, {
-    currentPassword: string;
-    newPassword: string;
-}>;
+}, zod.z.core.$strip>;
 export declare const ChangeLocalPasswordResponse: zod.ZodUnknown;
 export declare const AuthorizeLocalActionBody: zod.ZodObject<{
     permission: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    permission: string;
-}, {
-    permission: string;
-}>;
+}, zod.z.core.$strip>;
 export declare const AuthorizeLocalActionResponse: zod.ZodUnknown;
 export declare const ListLocalUsersResponse: zod.ZodObject<{
     users: zod.ZodArray<zod.ZodObject<{
         id: zod.ZodString;
         username: zod.ZodString;
-        role: zod.ZodEnum<["Admin", "Developer", "Reviewer"]>;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
         active: zod.ZodBoolean;
         mustChangePassword: zod.ZodBoolean;
-        permissions: zod.ZodArray<zod.ZodString, "many">;
+        permissions: zod.ZodArray<zod.ZodString>;
         overrides: zod.ZodRecord<zod.ZodString, zod.ZodBoolean>;
-    }, "strip", zod.ZodTypeAny, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }>, "many">;
-    permissions: zod.ZodArray<zod.ZodString, "many">;
-    roles: zod.ZodArray<zod.ZodString, "many">;
-}, "strip", zod.ZodTypeAny, {
-    permissions: string[];
-    users: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }[];
-    roles: string[];
-}, {
-    permissions: string[];
-    users: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }[];
-    roles: string[];
-}>;
+    }, zod.z.core.$strip>>;
+    permissions: zod.ZodArray<zod.ZodString>;
+    roles: zod.ZodArray<zod.ZodString>;
+}, zod.z.core.$strip>;
 export declare const createLocalUserBodyUsernameMin = 3;
 export declare const createLocalUserBodyUsernameMax = 64;
 export declare const createLocalUserBodyPasswordMin = 14;
@@ -207,377 +1145,219 @@ export declare const createLocalUserBodyPasswordMax = 128;
 export declare const CreateLocalUserBody: zod.ZodObject<{
     username: zod.ZodString;
     password: zod.ZodString;
-    role: zod.ZodEnum<["Admin", "Developer", "Reviewer"]>;
+    role: zod.ZodEnum<{
+        Admin: "Admin";
+        Developer: "Developer";
+        Reviewer: "Reviewer";
+    }>;
     overrides: zod.ZodOptional<zod.ZodRecord<zod.ZodString, zod.ZodBoolean>>;
-}, "strip", zod.ZodTypeAny, {
-    username: string;
-    role: "Admin" | "Developer" | "Reviewer";
-    password: string;
-    overrides?: Record<string, boolean> | undefined;
-}, {
-    username: string;
-    role: "Admin" | "Developer" | "Reviewer";
-    password: string;
-    overrides?: Record<string, boolean> | undefined;
-}>;
+}, zod.z.core.$strip>;
 export declare const CreateLocalUserResponse: zod.ZodObject<{
     user: zod.ZodObject<{
         id: zod.ZodString;
         username: zod.ZodString;
-        role: zod.ZodEnum<["Admin", "Developer", "Reviewer"]>;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
         active: zod.ZodBoolean;
         mustChangePassword: zod.ZodBoolean;
-        permissions: zod.ZodArray<zod.ZodString, "many">;
+        permissions: zod.ZodArray<zod.ZodString>;
         overrides: zod.ZodRecord<zod.ZodString, zod.ZodBoolean>;
-    }, "strip", zod.ZodTypeAny, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }>;
-}, "strip", zod.ZodTypeAny, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    };
-}, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    };
-}>;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
 export declare const UpdateLocalUserParams: zod.ZodObject<{
-    id: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    id: string;
-}, {
-    id: string;
-}>;
+    id: zod.z.ZodCoercedString<unknown>;
+}, zod.z.core.$strip>;
 export declare const UpdateLocalUserBody: zod.ZodObject<{
-    role: zod.ZodOptional<zod.ZodEnum<["Admin", "Developer", "Reviewer"]>>;
+    role: zod.ZodOptional<zod.ZodEnum<{
+        Admin: "Admin";
+        Developer: "Developer";
+        Reviewer: "Reviewer";
+    }>>;
     active: zod.ZodOptional<zod.ZodBoolean>;
     overrides: zod.ZodOptional<zod.ZodRecord<zod.ZodString, zod.ZodBoolean>>;
-}, "strip", zod.ZodTypeAny, {
-    role?: "Admin" | "Developer" | "Reviewer" | undefined;
-    active?: boolean | undefined;
-    overrides?: Record<string, boolean> | undefined;
-}, {
-    role?: "Admin" | "Developer" | "Reviewer" | undefined;
-    active?: boolean | undefined;
-    overrides?: Record<string, boolean> | undefined;
-}>;
+}, zod.z.core.$strip>;
 export declare const UpdateLocalUserResponse: zod.ZodObject<{
     user: zod.ZodObject<{
         id: zod.ZodString;
         username: zod.ZodString;
-        role: zod.ZodEnum<["Admin", "Developer", "Reviewer"]>;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
         active: zod.ZodBoolean;
         mustChangePassword: zod.ZodBoolean;
-        permissions: zod.ZodArray<zod.ZodString, "many">;
+        permissions: zod.ZodArray<zod.ZodString>;
         overrides: zod.ZodRecord<zod.ZodString, zod.ZodBoolean>;
-    }, "strip", zod.ZodTypeAny, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }, {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    }>;
-}, "strip", zod.ZodTypeAny, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    };
-}, {
-    user: {
-        id: string;
-        username: string;
-        role: "Admin" | "Developer" | "Reviewer";
-        active: boolean;
-        mustChangePassword: boolean;
-        permissions: string[];
-        overrides: Record<string, boolean>;
-    };
-}>;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
 export declare const ResetLocalUserPasswordParams: zod.ZodObject<{
-    id: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    id: string;
-}, {
-    id: string;
-}>;
+    id: zod.z.ZodCoercedString<unknown>;
+}, zod.z.core.$strip>;
 export declare const resetLocalUserPasswordBodyPasswordMin = 14;
 export declare const resetLocalUserPasswordBodyPasswordMax = 128;
 export declare const ResetLocalUserPasswordBody: zod.ZodObject<{
     password: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    password: string;
-}, {
-    password: string;
-}>;
+}, zod.z.core.$strip>;
 export declare const ResetLocalUserPasswordResponse: zod.ZodUnknown;
 export declare const ReviewCleanCoreDemoResponse: zod.ZodObject<{
     evidence: zod.ZodArray<zod.ZodObject<{
-        type: zod.ZodEnum<["atc", "cloud-readiness", "custom-code", "usage", "modifications", "enhancements", "object-metadata", "interfaces", "readiness-check", "cloud-alm", "process-data"]>;
+        type: zod.ZodEnum<{
+            atc: "atc";
+            "cloud-readiness": "cloud-readiness";
+            "custom-code": "custom-code";
+            usage: "usage";
+            modifications: "modifications";
+            enhancements: "enhancements";
+            "object-metadata": "object-metadata";
+            interfaces: "interfaces";
+            "readiness-check": "readiness-check";
+            "cloud-alm": "cloud-alm";
+            "process-data": "process-data";
+        }>;
         fileName: zod.ZodOptional<zod.ZodString>;
-        count: zod.ZodOptional<zod.ZodNumber>;
-        rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>, "many">;
+        count: zod.ZodOptional<zod.ZodInt>;
+        rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
         metadata: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
         attestation: zod.ZodString;
-    }, "strip", zod.ZodTypeAny, {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }, {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }>, "many">;
+    }, zod.z.core.$strip>>;
     assessment: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
-}, "strip", zod.ZodTypeAny, {
-    evidence: {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }[];
-    assessment: Record<string, unknown>;
-}, {
-    evidence: {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }[];
-    assessment: Record<string, unknown>;
-}>;
+}, zod.z.core.$strip>;
 /**
  * Gateway-authorized non-consuming limiter readiness and process-local metrics. Never calls the AI provider.
  */
 export declare const GetAiLimiterHealthResponse: zod.ZodObject<{
-    mode: zod.ZodEnum<["local", "redis-rest", "invalid"]>;
+    mode: zod.ZodEnum<{
+        local: "local";
+        "redis-rest": "redis-rest";
+        invalid: "invalid";
+    }>;
     available: zod.ZodBoolean;
     checkedAt: zod.ZodString;
-    cacheTtlMs: zod.ZodNumber;
+    cacheTtlMs: zod.ZodInt;
     metrics: zod.ZodObject<{
-        probeChecks: zod.ZodNumber;
-        probeFailures: zod.ZodNumber;
-        acquisitions: zod.ZodNumber;
-        admitted: zod.ZodNumber;
-        rejections: zod.ZodNumber;
-        acquisitionFailures: zod.ZodNumber;
+        probeChecks: zod.ZodInt;
+        probeFailures: zod.ZodInt;
+        acquisitions: zod.ZodInt;
+        admitted: zod.ZodInt;
+        rejections: zod.ZodInt;
+        acquisitionFailures: zod.ZodInt;
         acquisitionLatencyMsTotal: zod.ZodNumber;
         acquisitionLatencyMsMax: zod.ZodNumber;
-        releaseFailures: zod.ZodNumber;
-    }, "strip", zod.ZodTypeAny, {
-        probeChecks: number;
-        probeFailures: number;
-        acquisitions: number;
-        admitted: number;
-        rejections: number;
-        acquisitionFailures: number;
-        acquisitionLatencyMsTotal: number;
-        acquisitionLatencyMsMax: number;
-        releaseFailures: number;
-    }, {
-        probeChecks: number;
-        probeFailures: number;
-        acquisitions: number;
-        admitted: number;
-        rejections: number;
-        acquisitionFailures: number;
-        acquisitionLatencyMsTotal: number;
-        acquisitionLatencyMsMax: number;
-        releaseFailures: number;
-    }>;
-}, "strip", zod.ZodTypeAny, {
-    mode: "local" | "redis-rest" | "invalid";
-    available: boolean;
-    checkedAt: string;
-    cacheTtlMs: number;
-    metrics: {
-        probeChecks: number;
-        probeFailures: number;
-        acquisitions: number;
-        admitted: number;
-        rejections: number;
-        acquisitionFailures: number;
-        acquisitionLatencyMsTotal: number;
-        acquisitionLatencyMsMax: number;
-        releaseFailures: number;
-    };
-}, {
-    mode: "local" | "redis-rest" | "invalid";
-    available: boolean;
-    checkedAt: string;
-    cacheTtlMs: number;
-    metrics: {
-        probeChecks: number;
-        probeFailures: number;
-        acquisitions: number;
-        admitted: number;
-        rejections: number;
-        acquisitionFailures: number;
-        acquisitionLatencyMsTotal: number;
-        acquisitionLatencyMsMax: number;
-        releaseFailures: number;
-    };
-}>;
+        releaseFailures: zod.ZodInt;
+    }, zod.z.core.$strip>;
+}, zod.z.core.$strip>;
 export declare const GetAssessmentAiStatusResponse: zod.ZodObject<{
-    state: zod.ZodEnum<["disabled", "not-configured", "configured", "unavailable"]>;
+    state: zod.ZodEnum<{
+        configured: "configured";
+        disabled: "disabled";
+        "not-configured": "not-configured";
+        unavailable: "unavailable";
+    }>;
     message: zod.ZodString;
-    provider: zod.ZodOptional<zod.ZodEnum<["openai", "azure"]>>;
+    provider: zod.ZodOptional<zod.ZodEnum<{
+        openai: "openai";
+        azure: "azure";
+        "deere-gateway": "deere-gateway";
+    }>>;
     model: zod.ZodOptional<zod.ZodString>;
-}, "strip", zod.ZodTypeAny, {
-    message: string;
-    state: "disabled" | "not-configured" | "configured" | "unavailable";
-    provider?: "openai" | "azure" | undefined;
-    model?: string | undefined;
-}, {
-    message: string;
-    state: "disabled" | "not-configured" | "configured" | "unavailable";
-    provider?: "openai" | "azure" | undefined;
-    model?: string | undefined;
-}>;
-export declare const explainAssessmentBodyRecommendationMax = 300;
+}, zod.z.core.$strip>;
+export declare const explainAssessmentBodySummaryRecommendationMax = 300;
+export declare const explainAssessmentBodySummaryTargetReleaseMax = 50;
+export declare const explainAssessmentBodyTokenMax = 200;
 export declare const ExplainAssessmentBody: zod.ZodObject<{
-    kind: zod.ZodEnum<["object", "interface"]>;
-    classification: zod.ZodEnum<["A", "B", "C", "D"]>;
-    recommendation: zod.ZodString;
-    confidence: zod.ZodEnum<["low", "medium", "high", "unknown"]>;
-}, "strip", zod.ZodTypeAny, {
-    kind: "object" | "interface";
-    classification: "A" | "B" | "C" | "D";
-    recommendation: string;
-    confidence: "unknown" | "low" | "medium" | "high";
-}, {
-    kind: "object" | "interface";
-    classification: "A" | "B" | "C" | "D";
-    recommendation: string;
-    confidence: "unknown" | "low" | "medium" | "high";
-}>;
+    summary: zod.ZodObject<{
+        kind: zod.ZodEnum<{
+            object: "object";
+            interface: "interface";
+        }>;
+        classification: zod.ZodEnum<{
+            A: "A";
+            B: "B";
+            C: "C";
+            D: "D";
+        }>;
+        recommendation: zod.ZodString;
+        confidence: zod.ZodEnum<{
+            unknown: "unknown";
+            low: "low";
+            medium: "medium";
+            high: "high";
+        }>;
+        targetRelease: zod.ZodOptional<zod.ZodString>;
+    }, zod.z.core.$strip>;
+    mode: zod.ZodEnum<{
+        "knowledge-only": "knowledge-only";
+        "allow-fallback": "allow-fallback";
+    }>;
+    token: zod.ZodString;
+}, zod.z.core.$strip>;
 export declare const explainAssessmentResponseTextMax = 6000;
+export declare const explainAssessmentResponseSourcesItemTitleMax = 200;
+export declare const explainAssessmentResponseSourcesItemSectionMax = 160;
+export declare const explainAssessmentResponseSourcesItemReleaseMax = 50;
+export declare const explainAssessmentResponseSourcesMax = 4;
+export declare const explainAssessmentResponseKnowledgeDisclosureMax = 2000;
 export declare const ExplainAssessmentResponse: zod.ZodObject<{
     text: zod.ZodString;
-    provider: zod.ZodEnum<["openai", "azure"]>;
+    provider: zod.ZodEnum<{
+        openai: "openai";
+        azure: "azure";
+        "deere-gateway": "deere-gateway";
+    }>;
     model: zod.ZodString;
     generatedAt: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    provider: "openai" | "azure";
-    model: string;
-    text: string;
-    generatedAt: string;
-}, {
-    provider: "openai" | "azure";
-    model: string;
-    text: string;
-    generatedAt: string;
-}>;
+    sources: zod.ZodOptional<zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodUUID;
+        title: zod.ZodString;
+        version: zod.ZodInt;
+        section: zod.ZodString;
+        release: zod.ZodString;
+        applicability: zod.ZodEnum<{
+            "target-release": "target-release";
+            general: "general";
+            "other-release": "other-release";
+        }>;
+    }, zod.z.core.$strip>>>;
+    knowledgeMode: zod.ZodOptional<zod.ZodEnum<{
+        "knowledge-only": "knowledge-only";
+        "allow-fallback": "allow-fallback";
+    }>>;
+    knowledgeDisclosure: zod.ZodOptional<zod.ZodString>;
+}, zod.z.core.$strip>;
 export declare const loadCleanCoreDemoBodySystemMax = 100;
 export declare const loadCleanCoreDemoBodyTargetReleaseMax = 50;
 export declare const LoadCleanCoreDemoBody: zod.ZodObject<{
     system: zod.ZodString;
     targetRelease: zod.ZodString;
     weighted: zod.ZodBoolean;
-}, "strip", zod.ZodTypeAny, {
-    system: string;
-    targetRelease: string;
-    weighted: boolean;
-}, {
-    system: string;
-    targetRelease: string;
-    weighted: boolean;
-}>;
+}, zod.z.core.$strip>;
 export declare const LoadCleanCoreDemoResponse: zod.ZodObject<{
     evidence: zod.ZodArray<zod.ZodObject<{
-        type: zod.ZodEnum<["atc", "cloud-readiness", "custom-code", "usage", "modifications", "enhancements", "object-metadata", "interfaces", "readiness-check", "cloud-alm", "process-data"]>;
+        type: zod.ZodEnum<{
+            atc: "atc";
+            "cloud-readiness": "cloud-readiness";
+            "custom-code": "custom-code";
+            usage: "usage";
+            modifications: "modifications";
+            enhancements: "enhancements";
+            "object-metadata": "object-metadata";
+            interfaces: "interfaces";
+            "readiness-check": "readiness-check";
+            "cloud-alm": "cloud-alm";
+            "process-data": "process-data";
+        }>;
         fileName: zod.ZodOptional<zod.ZodString>;
-        count: zod.ZodOptional<zod.ZodNumber>;
-        rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>, "many">;
+        count: zod.ZodOptional<zod.ZodInt>;
+        rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
         metadata: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
         attestation: zod.ZodString;
-    }, "strip", zod.ZodTypeAny, {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }, {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }>, "many">;
+    }, zod.z.core.$strip>>;
     assessment: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
-}, "strip", zod.ZodTypeAny, {
-    evidence: {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }[];
-    assessment: Record<string, unknown>;
-}, {
-    evidence: {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }[];
-    assessment: Record<string, unknown>;
-}>;
+}, zod.z.core.$strip>;
 export declare const runCleanCoreAssessmentBodySystemMax = 100;
 export declare const runCleanCoreAssessmentBodyTargetReleaseMax = 50;
 export declare const runCleanCoreAssessmentBodyEvidenceMax = 11;
@@ -591,127 +1371,68 @@ export declare const RunCleanCoreAssessmentBody: zod.ZodObject<{
     targetRelease: zod.ZodString;
     weighted: zod.ZodBoolean;
     evidence: zod.ZodArray<zod.ZodObject<{
-        type: zod.ZodEnum<["atc", "cloud-readiness", "custom-code", "usage", "modifications", "enhancements", "object-metadata", "interfaces", "readiness-check", "cloud-alm", "process-data"]>;
+        type: zod.ZodEnum<{
+            atc: "atc";
+            "cloud-readiness": "cloud-readiness";
+            "custom-code": "custom-code";
+            usage: "usage";
+            modifications: "modifications";
+            enhancements: "enhancements";
+            "object-metadata": "object-metadata";
+            interfaces: "interfaces";
+            "readiness-check": "readiness-check";
+            "cloud-alm": "cloud-alm";
+            "process-data": "process-data";
+        }>;
         fileName: zod.ZodOptional<zod.ZodString>;
-        count: zod.ZodOptional<zod.ZodNumber>;
-        rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>, "many">;
+        count: zod.ZodOptional<zod.ZodInt>;
+        rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
         metadata: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
         attestation: zod.ZodString;
-    }, "strip", zod.ZodTypeAny, {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }, {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }>, "many">;
+    }, zod.z.core.$strip>>;
     classificationOverrides: zod.ZodOptional<zod.ZodArray<zod.ZodObject<{
         finding: zod.ZodOptional<zod.ZodString>;
         category: zod.ZodOptional<zod.ZodString>;
         objectPattern: zod.ZodOptional<zod.ZodString>;
-        level: zod.ZodEnum<["A", "B", "C", "D"]>;
+        level: zod.ZodEnum<{
+            A: "A";
+            B: "B";
+            C: "C";
+            D: "D";
+        }>;
         reason: zod.ZodOptional<zod.ZodString>;
-    }, "strip", zod.ZodTypeAny, {
-        level: "A" | "B" | "C" | "D";
-        finding?: string | undefined;
-        category?: string | undefined;
-        objectPattern?: string | undefined;
-        reason?: string | undefined;
-    }, {
-        level: "A" | "B" | "C" | "D";
-        finding?: string | undefined;
-        category?: string | undefined;
-        objectPattern?: string | undefined;
-        reason?: string | undefined;
-    }>, "many">>;
-}, "strip", zod.ZodTypeAny, {
-    evidence: {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }[];
-    system: string;
-    targetRelease: string;
-    weighted: boolean;
-    classificationOverrides?: {
-        level: "A" | "B" | "C" | "D";
-        finding?: string | undefined;
-        category?: string | undefined;
-        objectPattern?: string | undefined;
-        reason?: string | undefined;
-    }[] | undefined;
-}, {
-    evidence: {
-        type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-        rows: Record<string, unknown>[];
-        metadata: Record<string, unknown>;
-        attestation: string;
-        fileName?: string | undefined;
-        count?: number | undefined;
-    }[];
-    system: string;
-    targetRelease: string;
-    weighted: boolean;
-    classificationOverrides?: {
-        level: "A" | "B" | "C" | "D";
-        finding?: string | undefined;
-        category?: string | undefined;
-        objectPattern?: string | undefined;
-        reason?: string | undefined;
-    }[] | undefined;
-}>;
+    }, zod.z.core.$strip>>>;
+}, zod.z.core.$strip>;
 export declare const RunCleanCoreAssessmentResponse: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
 export declare const UploadCleanCoreEvidenceBody: zod.ZodObject<{
-    file: zod.ZodType<Blob, zod.ZodTypeDef, Blob>;
+    file: zod.ZodInstanceOf<Blob>;
     type: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    type: string;
-    file: Blob;
-}, {
-    type: string;
-    file: Blob;
-}>;
+}, zod.z.core.$strip>;
 export declare const UploadCleanCoreEvidenceResponse: zod.ZodObject<{
-    type: zod.ZodEnum<["atc", "cloud-readiness", "custom-code", "usage", "modifications", "enhancements", "object-metadata", "interfaces", "readiness-check", "cloud-alm", "process-data"]>;
+    type: zod.ZodEnum<{
+        atc: "atc";
+        "cloud-readiness": "cloud-readiness";
+        "custom-code": "custom-code";
+        usage: "usage";
+        modifications: "modifications";
+        enhancements: "enhancements";
+        "object-metadata": "object-metadata";
+        interfaces: "interfaces";
+        "readiness-check": "readiness-check";
+        "cloud-alm": "cloud-alm";
+        "process-data": "process-data";
+    }>;
     fileName: zod.ZodOptional<zod.ZodString>;
-    count: zod.ZodOptional<zod.ZodNumber>;
-    rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>, "many">;
+    count: zod.ZodOptional<zod.ZodInt>;
+    rows: zod.ZodArray<zod.ZodRecord<zod.ZodString, zod.ZodUnknown>>;
     metadata: zod.ZodRecord<zod.ZodString, zod.ZodUnknown>;
     attestation: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-    rows: Record<string, unknown>[];
-    metadata: Record<string, unknown>;
-    attestation: string;
-    fileName?: string | undefined;
-    count?: number | undefined;
-}, {
-    type: "atc" | "cloud-readiness" | "custom-code" | "usage" | "modifications" | "enhancements" | "object-metadata" | "interfaces" | "readiness-check" | "cloud-alm" | "process-data";
-    rows: Record<string, unknown>[];
-    metadata: Record<string, unknown>;
-    attestation: string;
-    fileName?: string | undefined;
-    count?: number | undefined;
-}>;
+}, zod.z.core.$strip>;
 /**
  * Returns server health status
  * @summary Health check
  */
 export declare const HealthCheckResponse: zod.ZodObject<{
     status: zod.ZodString;
-}, "strip", zod.ZodTypeAny, {
-    status: string;
-}, {
-    status: string;
-}>;
+}, zod.z.core.$strip>;
 //# sourceMappingURL=api.d.ts.map

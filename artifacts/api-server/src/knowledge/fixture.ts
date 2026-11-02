@@ -1,17 +1,18 @@
 /** Synthetic provider test harness. Not imported by production entry point. */
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import { createAiRouter } from "../routes/assessment-ai";
 import { readIdentity, mutationProtection, requirePermission } from "../auth/middleware";
 import { accountRouter } from "../routes/accounts";
 import { knowledgeRouter } from "../routes/knowledge";
-import { requestLimit } from "../request-limits";
+import { requestLimit, requestLimitOptions, requestLimitFailure } from "../request-limits";
 import { boundRequest } from "../input-bounds";
 import { uploadRouter } from "./upload-token";
 export function knowledgeFixture(provider?: typeof fetch) {
   const app = express();
   app.set("trust proxy", false);
-  app.use("/api", requestLimit("api", 600));
+  app.use("/api", rateLimit(requestLimitOptions("api", 600)), requestLimitFailure);
   app.use("/api/storage-upload", requestLimit("upload", 30), uploadRouter);
   app.use(cookieParser());
   app.use("/api", readIdentity);

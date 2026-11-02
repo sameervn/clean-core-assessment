@@ -1,5 +1,8 @@
 # Client Mend / CodeQL remediation
 
+For the subsequent DOCX findings and Multer/body-parser dependency updates, see
+[November remediation and verification](security-remediation-2026-11.md).
+
 Verified locally on 2026-10-19. This is a remediation record for the **17 supplied
 PDF reports**, not evidence that the client's scans have passed. No rules,
 scanner paths, package identities or dependency names were hidden or suppressed.

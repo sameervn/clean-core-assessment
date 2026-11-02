@@ -6,7 +6,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateKeyPairSync, sign } from "node:crypto";
-import express from "express";
+import express, { type Request } from "express";
+import { PreviewAssessmentExplanationResponse } from "@workspace/api-zod";
+import { retrieve } from "./knowledge/retrieval";
 import { aiLimiterFromEnv, localAiLimiter, sharedAiLimiter } from "./ai-limiter";
 import { aiConfig, AiError } from "./assessment-ai";
 import { createAiRouter } from "./routes/assessment-ai";
@@ -99,33 +101,65 @@ test("Redis atomically shares user/global budgets, concurrency and expiring leas
     assert.equal(await command(["EXISTS", "cc-ai:{integration}:leases", "cc-ai:{integration}:window"]), 0);
     const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const providerConfig = aiConfig({
+      CC_AI_AUTH_MODE: "gateway",
       CC_AI_ENABLED: "true", CC_AI_PROVIDER: "openai", CC_AI_MODEL: "test",
       CC_AI_API_KEY: "synthetic-provider-key",
       CC_AI_GATEWAY_PUBLIC_KEY: publicKey.export({ type: "spki", format: "pem" }).toString(),
       CC_AI_GATEWAY_ISSUER: "test", CC_AI_GATEWAY_AUDIENCE: "test",
     })!;
+    process.env.SESSION_SECRET = "synthetic-limiter-consent-test-secret";
+    const user: NonNullable<Request["identity"]>["user"] = {
+      id: "synthetic-account", username: "synthetic", active: true, overrides: {},
+      role: "Admin", permissions: ["ai.generate", "knowledge.read"], mustChangePassword: false,
+    };
+    // Only storage/account lookup is synthetic. Gateway verification, fresh
+    // permission checks, preview/consent, provider calls and Redis remain real.
+    const storage = { query: async (sql: string) => ({
+      rows: sql.includes("cc_knowledge_epoch") ? [{ revision: "0" }] : [],
+    }) } as any;
     let providerCalls = 0;
     const replicas = [a, b].map(limiter => {
       const app = express();
       app.use(express.json());
+      app.use((req, _res, next) => {
+        if (req.get("x-test-account") === "authorized")
+          req.identity = { user, csrf: "", tokenHash: "" };
+        next();
+      });
       app.use(createAiRouter(providerConfig, (async () => {
         providerCalls++;
         return Response.json({ choices: [{ finish_reason: "stop", message: { content: "Test draft" } }] });
-      }) as typeof fetch, limiter));
+      }) as typeof fetch, limiter, {
+        transaction: async fn => fn(storage),
+        freshUser: async () => user,
+        retrieve: (summary, mode, c) => retrieve(summary, mode, c),
+      }));
       return app.listen(0, "127.0.0.1");
     });
     try {
       await Promise.all(replicas.map(replica => replica.listening ? Promise.resolve() : new Promise<void>(r => replica.once("listening", r))));
-      const post = (replica: number, subject: string) => {
+      const post = async (replica: number, subject: string, authorized = true) => {
         const now = Math.floor(Date.now() / 1000);
         const jwt = [{ alg: "RS256" }, { iss: "test", aud: "test", sub: subject, iat: now, exp: now + 60 }]
           .map(value => Buffer.from(JSON.stringify(value)).toString("base64url")).join(".");
         const assertion = `${jwt}.${sign("RSA-SHA256", Buffer.from(jwt), privateKey).toString("base64url")}`;
-        return fetch(`http://127.0.0.1:${(replicas[replica].address() as { port: number }).port}/explain`, {
-          method: "POST", headers: { "Content-Type": "application/json", "x-cc-ai-assertion": assertion },
-          body: JSON.stringify({ kind: "object", classification: "B", recommendation: "released-api", confidence: "high" }),
+        const base = `http://127.0.0.1:${(replicas[replica].address() as { port: number }).port}`;
+        const headers = { "Content-Type": "application/json", "x-cc-ai-assertion": assertion,
+          ...(authorized ? { "x-test-account": "authorized" } : {}) };
+        const body = { summary: { kind: "object", classification: "B", recommendation: "released-api",
+          confidence: "high", targetRelease: "S4HANA_2025" }, mode: "allow-fallback" };
+        const preview = await fetch(`${base}/preview`, {
+          method: "POST", headers, body: JSON.stringify(body),
+        });
+        if (!authorized) return preview;
+        assert.equal(preview.status, 200, await preview.clone().text());
+        const { token } = PreviewAssessmentExplanationResponse.parse(await preview.json());
+        return fetch(`${base}/explain`, {
+          method: "POST", headers, body: JSON.stringify({ ...body, token }),
         });
       };
+      assert.equal((await post(0, "same-user", false)).status, 401, "gateway assertion alone cannot replace a local account");
+      assert.equal(providerCalls, 0);
       for (let i = 0; i < 5; i++) assert.equal((await post(i % 2, "same-user")).status, 200);
       for (let i = 0; i < 2; i++) {
         const denied = await post(i, "same-user");

@@ -17,10 +17,11 @@ export interface PortableStorage {
 }
 const MAX = 8 * 1024 * 1024;
 export function assertDocumentBytes(bytes: unknown): asserts bytes is Buffer {
-  if (!Buffer.isBuffer(bytes)) throw new TypeError("Document must be a Buffer");
-  if (!bytes.length || bytes.length > MAX) throw new Error("Document must contain 1 byte to 8 MB");
+  if (typeof bytes !== "object" || bytes === null || !Buffer.isBuffer(bytes)) throw new TypeError("Document must be a Buffer");
+  if (bytes.byteLength < 1 || bytes.byteLength > MAX) throw new Error("Document must contain 1 byte to 8 MB");
 }
-export function storageKey(path: string) {
+export function storageKey(path: unknown) {
+  if (typeof path !== "string") throw new TypeError("Storage path must be a string");
   const root = process.env.PRIVATE_OBJECT_DIR?.replace(/\/$/, "");
   if (!root || !path.startsWith(`${root}/`) || path.includes("\\") || path.split("/").some(p => p === ".." || p === ".")) throw new Error("Invalid storage path");
   return path.slice(1);

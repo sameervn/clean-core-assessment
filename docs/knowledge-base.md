@@ -41,27 +41,33 @@ For client-hosted deployments:
    core startup. Restrict migration rights according to client policy.
 2. Provision a **private Google Cloud Storage bucket**, enable public-access
    prevention, and give the service identity object read/create/delete and
-   signing rights only within the selected bucket/prefix.
+   rights only within the selected bucket/prefix.
 3. Set backend `CC_KNOWLEDGE_STORAGE=gcs` and
    `PRIVATE_OBJECT_DIR=/<private-bucket>/<deployment-prefix>`.
    Configure Google Application Default Credentials through workload identity
    (recommended), or the host secret manager. Never put credentials in `VITE_`
    variables, source control or browser code.
-4. Configure bucket CORS for the exact application's HTTPS origins, methods
-   `PUT`, and request header `Content-Type`. Allow browser PUT of
-   `application/octet-stream`. Do not make the bucket publicly readable.
+4. Allow application `PUT /api/storage-upload/*` requests with
+   `application/octet-stream` through the deployment proxy (body limit at least
+   8 MiB). Upload bytes pass through the API for every storage backend; browser
+   bucket CORS and storage URL signing rights are not required. Do not make the
+   bucket publicly readable.
 5. Retain Node 24+, production dependencies, and the build-copied
    `dist/parser-worker.mjs`. Deploy database and object storage in approved
    regions; back up both consistently. Maintain session signing secrets across
    replicas. A bucket alone is not a backup.
 6. Restart the API and verify an authenticated upload, restart survival, private
-   download, replacement and deletion in staging. Test denied roles and CORS.
+   download, replacement and deletion in staging. Test denied roles, oversized
+   uploads and replayed upload URLs.
 
-Upload authorization lasts five minutes and grants only PUT to a random staging
-object. The API checks actual length (8 MiB maximum), downloads a pinned object
-generation, parses it, then copies verified bytes to a new sealed private object
-that never had a browser write URL. This prevents reusing a still-valid upload
-URL to alter indexed content. The API serves sealed originals only through an
+Upload authorization lasts five minutes and grants only PUT through the API to
+a random staging object. The API rejects bodies over 8 MiB before any storage
+write, including chunked transfers. Storage writes are atomic create-only
+(`ifGenerationMatch: 0` for GCS/Replit), so replaying a URL cannot replace an
+existing staging object. No direct storage-write URLs are issued.
+Processing checks the registered size, downloads a pinned object generation,
+parses it, then copies verified bytes to a new sealed private object that never
+had an upload capability. The API serves sealed originals only through an
 authenticated, current-version download endpoint with attachment disposition.
 Never add generic public storage routes for this bucket.
 

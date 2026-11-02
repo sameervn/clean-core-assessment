@@ -14,5 +14,10 @@ export interface AssessmentExplanationInput {
     /** @maxLength 300 */
     recommendation: string;
     confidence: AssessmentExplanationInputConfidence;
+    /**
+       * @minLength 1
+       * @maxLength 50
+       */
+    targetRelease?: string;
 }
 //# sourceMappingURL=assessmentExplanationInput.d.ts.map

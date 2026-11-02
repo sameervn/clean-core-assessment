@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AssessmentExplanationKnowledgeMode } from './assessmentExplanationKnowledgeMode';
 import type { AssessmentExplanationProvider } from './assessmentExplanationProvider';
+import type { KnowledgeSource } from './knowledgeSource';
 export interface AssessmentExplanation {
     /**
        * @minLength 1
@@ -15,5 +17,10 @@ export interface AssessmentExplanation {
     provider: AssessmentExplanationProvider;
     model: string;
     generatedAt: string;
+    /** @maxItems 4 */
+    sources?: KnowledgeSource[];
+    knowledgeMode?: AssessmentExplanationKnowledgeMode;
+    /** @maxLength 2000 */
+    knowledgeDisclosure?: string;
 }
 //# sourceMappingURL=assessmentExplanation.d.ts.map

@@ -6,6 +6,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { once } from "node:events";
+import { createHash } from "node:crypto";
 import express from "express";
 import { requestStoreConfig, SharedRequestStore } from "./shared-request-store";
 import { httpLimiterProbe, validateRequestLimits } from "./request-limits";
@@ -157,11 +158,17 @@ test("two API processes share ingress/account/upload/static limits, expiry, boun
     assert.equal((await get(0, "/static/asset.js")).status, 429);
     assert.equal((await get(0, "/expiry")).status, 200);
     assert.equal((await get(1, "/expiry")).status, 429);
-    await new Promise(r => setTimeout(r, 450));
+    // Advance only this disposable subject's deadline. A short natural window
+    // can elapse between the first two requests when the full suite is busy.
+    const expiryPrefix = "cc-http:{process-test:expiry}";
+    const expiryMembers: string[] = await command(["ZRANGE", `${expiryPrefix}:expiry`, 0, -1]);
+    assert.equal(expiryMembers.length, 1);
+    await command(["ZADD", `${expiryPrefix}:expiry`, 0, expiryMembers[0]]);
     assert.equal((await get(1, "/expiry")).status, 200);
+    assert.equal((await get(0, "/expiry")).status, 429);
 
     const store = new SharedRequestStore({ url, token: "synthetic-token", namespace: "capacity" }, "test", fetch, 2);
-    store.init({ windowMs: 1000 } as any);
+    store.init({ windowMs: 60_000 } as any);
     assert.equal((await store.increment("raw-one")).totalHits, 1);
     assert.equal((await store.increment("raw-two")).totalHits, 1);
     assert.equal((await store.increment("new")).totalHits, 2147483647);
@@ -172,17 +179,36 @@ test("two API processes share ingress/account/upload/static limits, expiry, boun
     const snapshot = await command(["HGETALL", hits]);
     await store.probe();
     assert.deepEqual(await command(["HGETALL", hits]), snapshot);
-    assert(await command(["PTTL", hits]) > 0);
+    for (const key of [hits, expiry]) {
+      const ttl = await command(["PTTL", key]);
+      assert(ttl > 0 && ttl <= 60_000, "both capacity keys have bounded TTLs");
+    }
     // Expire just one subject while the other remains live: cleanup must free
     // its slot without evicting/resetting the still-active caller.
-    const members: string[] = await command(["ZRANGE", expiry, 0, -1]);
-    await command(["ZADD", expiry, 0, members[0]]);
+    await command(["ZADD", expiry, 0, createHash("sha256").update("raw-one").digest("hex")]);
     assert.equal((await store.increment("replacement")).totalHits, 1);
+    assert.equal((await store.increment("raw-two")).totalHits, 2, "cleanup must preserve the live caller's budget");
     assert.equal(await command(["HLEN", hits]), 2);
     assert.equal(await command(["ZCARD", expiry]), 2);
-    await new Promise(r => setTimeout(r, 1050));
-    assert.equal(await command(["EXISTS", hits, expiry]), 0);
-    assert.equal((await store.increment("new")).totalHits, 1);
+    assert.equal((await store.increment("new")).totalHits, 2147483647);
+
+    // Separately verify natural key expiration using the real configured TTL.
+    // Nothing else must complete inside this short window; poll with a bounded
+    // deadline rather than assuming a sleep runs at precisely the right time.
+    const expiring = new SharedRequestStore({ url, token: "synthetic-token", namespace: "natural-expiry" }, "test");
+    expiring.init({ windowMs: 1000 } as any);
+    assert.equal((await expiring.increment("subject")).totalHits, 1);
+    const expiringKeys = [`${expiring.prefix}:hits`, `${expiring.prefix}:expiry`];
+    for (const key of expiringKeys) {
+      const ttl = await command(["PTTL", key]);
+      assert(ttl === -2 || (ttl > 0 && ttl <= 1000), "key must expire, never persist without a TTL");
+    }
+    const deadline = Date.now() + 5000;
+    while (await command(["EXISTS", ...expiringKeys])) {
+      assert(Date.now() < deadline, "limiter keys did not expire within five seconds");
+      await new Promise(r => setTimeout(r, 25));
+    }
+    assert.equal((await expiring.increment("subject")).totalHits, 1);
 
     const frozen = await counters();
     for (mode of ["down", "malformed", "disconnect", "timeout", "redirect"] as const) {

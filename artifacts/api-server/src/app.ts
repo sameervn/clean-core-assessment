@@ -1,4 +1,5 @@
 import express, { type Express, type ErrorRequestHandler } from "express";
+import { rateLimit } from "express-rate-limit";
 import multer from "multer";
 import pinoHttp from "pino-http";
 import router from "./routes";
@@ -12,7 +13,7 @@ import { assessmentGithubRouter } from "./routes/assessment-github";
 import { assessmentExportsRouter } from "./routes/assessment-exports";
 import { probes, productionFrontend } from "./runtime";
 import { uploadRouter } from "./knowledge/upload-token";
-import { requestLimit } from "./request-limits";
+import { requestLimit, requestLimitOptions, requestLimitFailure } from "./request-limits";
 import { boundRequest } from "./input-bounds";
 
 const app: Express = express();
@@ -43,7 +44,7 @@ app.set("trust proxy", false);
 app.use(probes);
 app.use("/api", probes);
 // Before cookies, identity DB lookup, raw upload parsing and JSON/multipart.
-app.use("/api", requestLimit("api", 600));
+app.use("/api", rateLimit(requestLimitOptions("api", 600)), requestLimitFailure);
 app.use("/api/storage-upload", requestLimit("upload", 30));
 app.use("/api/clean-core/evidence", requestLimit("evidence", 20));
 // This route uses a short-lived, path-bound capability, not cookie authority.

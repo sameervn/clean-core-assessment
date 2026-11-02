@@ -4,11 +4,12 @@ import express, { type Express } from "express";
 import { mkdtemp, rm, readdir, stat, access, open, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHmac } from "node:crypto";
 import PizZip from "pizzip";
 import { z } from "zod";
 import { BoundedRequestStore, requestLimit } from "./request-limits";
 import { parseCleanCoreEvidence } from "./clean-core-assessment";
-import { localStorage, azureStorage, s3Storage } from "./knowledge/portable-storage";
+import { localStorage, azureStorage, s3Storage, storageKey } from "./knowledge/portable-storage";
 import { portableUploadUrl, uploadRouter } from "./knowledge/upload-token";
 import { sample, validate } from "./reports/engine.mjs";
 import { StartKnowledgeUploadBody, RenderWordReportsBody } from "@workspace/api-zod";
@@ -149,6 +150,16 @@ test("all portable adapters reject non-binary/empty/oversized values before forw
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test("storage paths reject parameter arrays, objects and traversal before string operations", () => {
+  process.env.PRIVATE_OBJECT_DIR = "/documents/private";
+  for (const path of [null, undefined, 42, [], ["/documents/private/knowledge/test"],
+    { toString: () => "/documents/private/knowledge/test" },
+    "/documents/private/../secret", "/documents/private/./test", "/documents/private/a\\b", "/other/test"]) {
+    assert.throws(() => storageKey(path));
+  }
+  assert.equal(storageKey("/documents/private/knowledge/test"), "documents/private/knowledge/test");
+});
+
 test("portable HTTP uploads reject wrong media, query tampering, bad capabilities and preserve sealing", async () => {
   const previous = { mode: process.env.CC_KNOWLEDGE_STORAGE, dir: process.env.CC_STORAGE_LOCAL_DIR, root: process.env.PRIVATE_OBJECT_DIR, secret: process.env.SESSION_SECRET };
   const dir = await mkdtemp(join(tmpdir(), "cc-security-upload-"));
@@ -165,6 +176,20 @@ test("portable HTTP uploads reject wrong media, query tampering, bad capabilitie
         ["?data=x&data=y", "application/octet-stream", "abc"], ["", "application/octet-stream", ""],
       ]) assert.equal((await fetch(url + suffix, { method: "PUT", headers: { "Content-Type": type }, body })).status, 400);
       assert.equal((await fetch(base + "/api/storage-upload/invalid", { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: "abc" })).status, 400);
+      // Even correctly signed capabilities must satisfy the runtime payload contract.
+      for (const value of [null, [], { path: ["/documents/private/knowledge/test"], expires: Date.now() + 60_000 },
+        { path: "/documents/private/knowledge/test", expires: String(Date.now() + 60_000) },
+        { path: "/documents/private/../secret", expires: Date.now() + 60_000 },
+        { path: "/documents/private/knowledge/test", expires: Date.now() - 1 },
+        { path: "/documents/private/knowledge/test", expires: Date.now() + 600_000 }]) {
+        const payload = Buffer.from(JSON.stringify(value)).toString("base64url");
+        const signature = createHmac("sha256", process.env.SESSION_SECRET!)
+          .update(`document-upload:${payload}`).digest("base64url");
+        const response = await fetch(`${base}/api/storage-upload/${payload}.${signature}`, {
+          method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: "abc",
+        });
+        assert.equal(response.status, 400);
+      }
       assert.equal((await fetch(url, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: Buffer.alloc(8 * 1024 * 1024 + 1) })).status, 413);
       assert.equal((await fetch(url, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: "abc" })).status, 204);
       assert.equal((await fetch(url, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: "overwrite" })).status, 400);
@@ -200,9 +225,11 @@ test("smoke temporary file is private, exclusive, unpredictable and cleaned on s
   for (const fail of [false, true]) {
     const promise = withPrivateTempFile(async (handle: any, filename: string, directory: string) => {
       directories.push(directory);
-      assert.equal((await stat(directory)).mode & 0o777, 0o700);
-      assert.equal((await stat(filename)).mode & 0o777, 0o600);
       await assert.rejects(open(filename, "wx", 0o600));
+      const directoryHandle = await open(directory, "r");
+      try { assert.equal((await directoryHandle.stat()).mode & 0o777, 0o700); }
+      finally { await directoryHandle.close(); }
+      assert.equal((await handle.stat()).mode & 0o777, 0o600);
       await handle.writeFile("ok");
       if (fail) throw new Error("synthetic failure");
     });

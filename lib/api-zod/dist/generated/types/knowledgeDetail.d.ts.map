@@ -1,0 +1,1 @@
+{"version":3,"file":"knowledgeDetail.d.ts","sourceRoot":"","sources":["../../../src/generated/types/knowledgeDetail.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,iBAAiB,EAAE,MAAM,qBAAqB,CAAC;AAC7D,OAAO,KAAK,EAAE,gBAAgB,EAAE,MAAM,oBAAoB,CAAC;AAE3D,MAAM,MAAM,eAAe,GAAG,iBAAiB,GAAG;IAChD,SAAS,EAAE,OAAO,CAAC;IACnB,QAAQ,EAAE,gBAAgB,EAAE,CAAC;CAC9B,CAAC"}

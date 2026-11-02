@@ -2,7 +2,7 @@ import { Storage } from "@google-cloud/storage";
 import { objectStorageClient } from "../lib/objectStorage";
 import { AiError } from "../assessment-ai";
 import { portableStorage } from "./portable-storage";
-import { portableUploadUrl } from "./upload-token";
+import { portableUploadUrl } from "./upload-capability";
 
 // Replit uses the unchanged sidecar client; client-hosted GCS uses workload identity/ADC.
 const clientStorage = new Storage();
@@ -19,17 +19,10 @@ export function objectPath(id: string) {
   return `${process.env.PRIVATE_OBJECT_DIR!.replace(/\/$/, "")}/knowledge/${id}`;
 }
 export async function uploadUrl(path: string) {
-  if (portableStorage()) return portableUploadUrl(path);
-  const obj = file(path);
-  if (process.env.CC_KNOWLEDGE_STORAGE === "gcs") {
-    return (await obj.getSignedUrl({ version: "v4", action: "write", expires: Date.now() + 300_000, contentType: "application/octet-stream" }))[0];
-  }
-  const response = await fetch("http://127.0.0.1:1106/object-storage/signed-object-url", {
-    method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(10_000),
-    body: JSON.stringify({ bucket_name: obj.bucket.name, object_name: obj.name, method: "PUT", expires_at: new Date(Date.now() + 300_000).toISOString() }),
-  });
-  if (!response.ok) throw new AiError(503, "Private storage cannot authorize the upload.");
-  return ((await response.json()) as { signed_url: string }).signed_url;
+  // No browser storage-write capability: all backends must pass the bounded
+  // upload endpoint before a create-only write. The sidecar's signed PUT
+  // interface cannot bind either a size limit or a generation precondition.
+  return portableUploadUrl(path);
 }
 export async function readObject(path: string) {
   const backend = portableStorage();
@@ -37,7 +30,7 @@ export async function readObject(path: string) {
   const obj = file(path);
   const [meta] = await obj.getMetadata();
   if (!meta.size || Number(meta.size) > MAX_FILE_BYTES) throw new AiError(413, "Guidance must be 8 MB or smaller.");
-  // Pin generation; signed PUT may still be valid. A later overwrite cannot change indexed/served content.
+  // Pin generation so a later administrative write cannot change the bytes read.
   const generation = String(meta.generation);
   const pinned = obj.bucket.file(obj.name, { generation });
   const buffers: Buffer[] = [];

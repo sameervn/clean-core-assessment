@@ -1,0 +1,1 @@
+{"version":3,"file":"reviewNotification.d.ts","sourceRoot":"","sources":["../../../src/generated/types/reviewNotification.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,kBAAkB;IACjC,EAAE,EAAE,MAAM,CAAC;IACX,YAAY,EAAE,MAAM,CAAC;IACrB,QAAQ,EAAE,MAAM,CAAC;IACjB,OAAO,EAAE,MAAM,CAAC;IAChB,SAAS,EAAE,IAAI,CAAC;IAChB,IAAI,EAAE,OAAO,CAAC;CACf"}

@@ -12,9 +12,12 @@ import { readObject, removeObject, storageConfigured } from "../knowledge/storag
 import { processWord } from "../reports/process";
 import { example } from "../reports/contract.mjs";
 import { approvalPage } from "../collaboration/archive";
-import { requestLimit } from "../request-limits";
+import { rateLimit } from "express-rate-limit";
+import { requestLimit, requestLimitOptions, requestLimitFailure } from "../request-limits";
 
 export const assessmentExportsRouter = Router();
+assessmentExportsRouter.use(["/company-templates", "/approvals"],
+  rateLimit(requestLimitOptions("assessment-exports", 120, true)), requestLimitFailure);
 assessmentExportsRouter.use(requireSession);
 assessmentExportsRouter.use("/company-templates", requestLimit("company-templates", 60, true));
 assessmentExportsRouter.post("/company-templates", requestLimit("company-template-upload", 10, true));

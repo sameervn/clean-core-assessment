@@ -9,5 +9,6 @@ export type AssessmentExplanationProvider = typeof AssessmentExplanationProvider
 export declare const AssessmentExplanationProvider: {
     readonly openai: "openai";
     readonly azure: "azure";
+    readonly 'deere-gateway': "deere-gateway";
 };
 //# sourceMappingURL=assessmentExplanationProvider.d.ts.map
