@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 export type ListKnowledgeParams = {
-    /**
-     * @maxLength 200
-     */
+    /** @maxLength 200 */
     q?: string;
 };
 //# sourceMappingURL=listKnowledgeParams.d.ts.map

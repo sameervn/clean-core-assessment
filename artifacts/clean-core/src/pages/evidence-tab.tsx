@@ -1,4 +1,4 @@
-import { FileText, FlaskConical, Play } from "lucide-react";
+import { FileText, FlaskConical, Play, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ export default function EvidenceTab({ ctx, evidenceTypes }: {
               <CardDescription>Provide the raw data sources required for the assessment engine</CardDescription>
            </CardHeader>
            <CardContent className="space-y-6 pt-6">
-              <div className="p-5 border rounded-xl bg-muted/10 flex items-center justify-between hover-elevate transition-all">
+              <div className="p-5 border rounded-xl bg-muted/10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between hover-elevate transition-all">
                  <div className="flex gap-4 items-start">
                    <div className="p-3 bg-primary/10 text-primary rounded-lg">
                       <FlaskConical className="w-6 h-6" />
@@ -57,9 +57,14 @@ export default function EvidenceTab({ ctx, evidenceTypes }: {
                      <p className="text-sm text-muted-foreground mt-1 max-w-lg">Load pre-configured demo evidence to instantly populate the cockpit for presentation or evaluation purposes.</p>
                    </div>
                  </div>
-                  <Button onClick={ctx.requestDemo} data-testid="button-load-demo" disabled={ctx.loadDemoData.isPending || !ctx.perms.evidence || !ctx.perms.run} size="lg">
+                 <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button onClick={ctx.requestDemo} data-testid="button-load-demo" disabled={ctx.demoActionBusy || !ctx.perms.evidence || !ctx.perms.run} size="lg">
                      {ctx.loadDemoData.isPending ? "Building 4,000-object landscape…" : "Load Demo Data"}
                  </Button>
+                  {ctx.hasDemoData && <Button variant="outline" onClick={ctx.requestUnloadDemo} data-testid="button-unload-demo" disabled={ctx.demoActionBusy || !ctx.perms.reset} size="lg">
+                    <RotateCcw className="mr-2 h-4 w-4" /> Unload demo data
+                  </Button>}
+                 </div>
               </div>
 
               <div className="p-5 border rounded-xl">
@@ -87,6 +92,9 @@ export default function EvidenceTab({ ctx, evidenceTypes }: {
                     <span>XML, JSON, CSV, TSV, or TXT · up to 16 MB per file, 16 MB combined after normalization</span>
                     <span>{ctx.uploadEvidence.isPending ? "Streaming upload and normalizing…" : "Files are normalized before assessment"}</span>
                   </div>
+                  <p className="mt-2 rounded border border-dashed px-2 py-1.5 text-[11px] text-muted-foreground" data-testid="text-raw-source-guidance">
+                    This upload accepts inventory, ATC, usage and other evidence exports only. Raw ABAP source code (.abap or .txt) belongs on the specific object or interface: open it in Object Explorer or Interfaces and use its Source code section.
+                  </p>
                   {ctx.uploadEvidence.isPending && (
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
                       <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />

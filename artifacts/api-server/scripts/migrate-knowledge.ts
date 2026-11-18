@@ -1,8 +1,8 @@
 import "@workspace/db/runtime-env";
-import { initializeKnowledge } from "../src/knowledge/schema";
+import { initializeProjects } from "../src/projects/service";
 import { pool } from "@workspace/db";
 try {
-  await initializeKnowledge();
+  await initializeProjects();
   console.log("Knowledge schema initialized.");
 } catch {
   console.error("Knowledge migration failed. Check database connectivity and deployment-role schema privileges.");

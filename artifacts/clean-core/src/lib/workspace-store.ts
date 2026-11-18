@@ -100,7 +100,20 @@ export interface WorkspaceStore {
   subscribe(onChange: () => void): () => void;
   /** After dispose every pending/future operation rejects; nothing is deleted. */
   dispose(): void;
+  /** Keep the handle open until this queued write settles. */
+  track(p: Promise<unknown>): void;
+  /** Dispose after every tracked write has settled (late writes still land in THIS scope only). */
+  disposeWhenIdle(): void;
   readonly disposed: boolean;
+}
+
+const LEGACY_PROJECT = "00000000-0000-4000-8000-000000000002";
+/**
+ * Legacy project keeps the original `user-<id>` scope (existing browser data);
+ * every other project gets `user-<id>-project-<uuid>` and starts empty.
+ */
+export function workspaceScopeFor(userId: string | number, projectId?: string | null) {
+  return !projectId || projectId === LEGACY_PROJECT ? `user-${String(userId)}` : `user-${String(userId)}-project-${projectId}`;
 }
 
 /**
@@ -108,13 +121,14 @@ export interface WorkspaceStore {
  * captured once; a handle can never be re-pointed at another user, so stale
  * autosaves from a previous account fail closed instead of leaking across.
  */
-export function openWorkspaceStore(userId: string | number): WorkspaceStore {
-  const scope = `user-${String(userId)}`;
+export function openWorkspaceStore(userId: string | number, projectId?: string | null): WorkspaceStore {
+  const scope = workspaceScopeFor(userId, projectId);
   const dbName = `${LEGACY_DB_NAME}::${scope}`;
   const channelName = `clean-core-workspace-changed::${scope}`;
   let disposed = false;
   let dbPromise: Promise<IDBDatabase> | null = null;
   const unsubscribers = new Set<() => void>();
+  const tracked = new Set<Promise<unknown>>();
   const guard = () => { if (disposed) throw new WorkspaceClosedError(); };
   const db = () => {
     guard();
@@ -199,6 +213,19 @@ export function openWorkspaceStore(userId: string | number): WorkspaceStore {
       };
       unsubscribers.add(off);
       return off;
+    },
+    track(p) {
+      if (disposed) return;
+      tracked.add(p);
+      p.then(() => tracked.delete(p), () => tracked.delete(p));
+    },
+    disposeWhenIdle() {
+      [...unsubscribers].forEach(off => off());
+      const self = this;
+      window.setTimeout(async () => {
+        while (tracked.size) await Promise.allSettled([...tracked]);
+        self.dispose();
+      }, 0);
     },
     dispose() {
       disposed = true;

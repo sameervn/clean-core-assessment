@@ -98,9 +98,14 @@ serialized and noninteractive; it initializes all current account, session,
 audit, throttle, knowledge, cleanup and template schemas. It never uses
 drizzle push --force. Back up before every upgrade.
 
-After schema initialization, grant runtime CONNECT/USAGE plus
-SELECT/INSERT/UPDATE/DELETE on the app tables. Configure migration-role default
-privileges for future tables. This application uses no application sequences.
+The multi-client upgrade moves product tables into project schemas while keeping
+accounts and the client/project catalog in public. Back up before upgrading and
+review [the multi-client deployment requirements](../docs/multi-client-projects.md).
+Grant runtime CONNECT/USAGE plus SELECT/INSERT/UPDATE/DELETE on all application
+tables and USAGE/SELECT on application sequences in **every** project schema and
+public, not public alone. Configure migration-role default privileges for future
+tables/sequences. Existing application sequences and migrated ownership must be
+included. The following public-only example is insufficient by itself for projects:
 For example, adapt role/schema names under DBA control:
 
 ```sql
@@ -111,7 +116,14 @@ ALTER DEFAULT PRIVILEGES FOR ROLE clean_core_migrator IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO clean_core_app;
 ```
 
-Set CC_SCHEMA_BOOTSTRAP=false so the app does not run legacy optional DDL.
+Set CC_SCHEMA_BOOTSTRAP=false on the API after running the project-aware migration.
+Admin creation now queues ordinary control-plane DML; only the separate operator
+job creates schemas. Follow [project provisioning](PROJECT-PROVISIONING.md) for
+the required migrator/provisioner/runtime role setup, ownership conversion for
+older installations, grants, CronJob settings, retries and cleanup. The API needs
+neither CREATE nor membership in a schema-owner role. There is no privileged
+connection in the API, SQL execution endpoint or SECURITY DEFINER function.
+Backup/restore procedures must include public **and all ccp_ project schemas**.
 Bootstrap admin creation is ordinary DML, not schema creation. Unset its
 password after first setup; do not rotate an existing account by changing
 CC_BOOTSTRAP_PASSWORD.

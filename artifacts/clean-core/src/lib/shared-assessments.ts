@@ -1,4 +1,4 @@
-import { apiFetch, apiJson, readApiError } from "./api";
+import { apiFetch, apiJson, readApiError, getActiveProjectId, LEGACY_PROJECT_ID } from "./api";
 import { complexitySize, itemComplexitySize, type ComplexitySize } from "./complexity-size";
 import { isInterfaceItem, scalar } from "./word-reports";
 
@@ -48,7 +48,8 @@ export interface SharedDetail { assessment: SharedAssessmentSummary & Record<str
 export interface Proposal { classification: Classification | null; classificationExplanation: string; recommendation: string; evidence: Array<{ path: string; line: number; text: string }>; notice: string; references?: Array<{ id?: string; title?: string; section?: string; release?: string; version?: number; text?: string }>; guidance?: string }
 export interface Approval { id: string; entity_id: string; version: number; approver: string; approved_at: string; kind: string; name: string; assessment_id: string; assessment_name: string; superseded: boolean; template_name: string | null; template_version: number | null }
 export interface CompanyTemplate { id: string; name: string; version: number; previewed: boolean; active: boolean }
-export interface GithubStatus { configured: boolean; connected: boolean; repositories: string[] }
+export type GithubStatus = import("@workspace/api-client-react").GithubConnectionStatus;
+export type GithubConnectionInput = import("@workspace/api-client-react").GithubConnectionInput;
 
 // ---------- content mapping (pure) ----------
 const str = (v: unknown) => scalar(v).trim();
@@ -147,10 +148,15 @@ export function normalizeContent(c: Partial<SharedContent> | null | undefined): 
 
 // ---------- user-scoped drafts ----------
 export interface Draft { baseVersion: number; content: SharedContent; error?: string; conflict?: boolean; savedAt: string }
-const draftKey = (userId: string | number, entityId: string) => `cc-shared-draft:${userId}:${entityId}`;
+/** Legacy project keeps the original keys; new projects are prefixed so drafts never cross scopes. */
+function draftPrefix(userId: string | number, project = getActiveProjectId()) {
+  if (!project) throw new Error("No project selected");
+  return project === LEGACY_PROJECT_ID ? `cc-shared-draft:${userId}:` : `cc-shared-draft:p-${project}:${userId}:`;
+}
+const draftKey = (userId: string | number, entityId: string, project?: string | null) => `${draftPrefix(userId, project)}${entityId}`;
 const memoryDrafts = new Map<string, Draft>();
-export function loadDraft(userId: string | number, entityId: string): Draft | null {
-  const key = draftKey(userId, entityId);
+export function loadDraft(userId: string | number, entityId: string, project?: string | null): Draft | null {
+  const key = draftKey(userId, entityId, project);
   if (memoryDrafts.has(key)) return memoryDrafts.get(key)!;
   try {
     const raw = localStorage.getItem(key);
@@ -160,16 +166,16 @@ export function loadDraft(userId: string | number, entityId: string): Draft | nu
     return { ...parsed, content: normalizeContent(parsed.content) };
   } catch { return null; }
 }
-export function saveDraft(userId: string | number, entityId: string, d: Draft) {
-  const key = draftKey(userId, entityId); memoryDrafts.set(key, d);
+export function saveDraft(userId: string | number, entityId: string, d: Draft, project?: string | null) {
+  const key = draftKey(userId, entityId, project); memoryDrafts.set(key, d);
   try { localStorage.setItem(key, JSON.stringify(d)); return true; } catch { return false; }
 }
-export function clearDraft(userId: string | number, entityId: string) {
-  const key = draftKey(userId, entityId); memoryDrafts.delete(key);
+export function clearDraft(userId: string | number, entityId: string, project?: string | null) {
+  const key = draftKey(userId, entityId, project); memoryDrafts.delete(key);
   try { localStorage.removeItem(key); } catch { /* already retained in server or explicitly discarded */ }
 }
 export function listDraftIds(userId: string | number): string[] {
-  const prefix = `cc-shared-draft:${userId}:`; const out: string[] = [];
+  const prefix = draftPrefix(userId); const out: string[] = [];
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(prefix)) out.push(k.slice(prefix.length)); } } catch { /* ignore */ }
   return out;
 }
@@ -196,11 +202,23 @@ export const getAdministration = (signal?: AbortSignal) => apiJson<{ assessments
 export const putMember = (id: string, userId: string, access: Access | null) => apiJson<{ ok: true }>(`${BASE}/${enc(id)}/members`, { method: "PUT", json: { userId, access } });
 export const putReviewer = (id: string, expectedVersion: number, reviewerId: string | null) => apiJson<{ entity: SharedEntity }>(`${BASE}/entities/${enc(id)}/reviewer`, { method: "PUT", json: { expectedVersion, reviewerId } });
 export const githubStatus = (signal?: AbortSignal) => apiJson<GithubStatus>(`${BASE}/github/status`, { signal, cache: "no-store" });
-export const githubConnect = () => apiJson<GithubStatus>(`${BASE}/github/connect`, { method: "POST", json: {} });
-export async function githubDisconnect() { const res = await apiFetch(`${BASE}/github/connect`, { method: "DELETE" }); if (!res.ok) throw new Error(await readApiError(res, "Disconnect failed")); }
+export const githubCheck = (repository: string) =>
+  apiJson<import("@workspace/api-client-react").GithubConnectionCheckResult>(`${BASE}/github/check`, { method: "POST", json: { repository }, cache: "no-store" });
+export const githubConnect = (input: GithubConnectionInput) => apiJson<GithubStatus>(`${BASE}/github/connect`, { method: "POST", json: input });
+export async function githubDisconnect(repository?: string) { const res = await apiFetch(`${BASE}/github/connect${repository ? `?repository=${enc(repository)}` : ""}`, { method: "DELETE" }); if (!res.ok) throw new Error(await readApiError(res, "Disconnect failed")); }
 export const githubFiles = (repository: string, ref: string, signal?: AbortSignal) => apiJson<{ commit: string; files: Array<{ path: string; sha: string; size: number }> }>(`${BASE}/github/files?repository=${enc(repository)}&ref=${enc(ref)}`, { signal });
-export const mapSource = (id: string, body: { expectedVersion: number; repository: string; commit: string; path: string }) => apiJson<{ entity: SharedEntity; proposal: Proposal | null }>(`${BASE}/entities/${enc(id)}/source`, { method: "POST", json: body });
-export const getSource = (id: string, index: number, signal?: AbortSignal) => apiJson<{ source: any; code: string }>(`${BASE}/entities/${enc(id)}/source/${index}`, { signal });
+export const mapSource = (id: string, body: import("@workspace/api-client-react").SharedSourceMapping) => apiJson<{ entity: SharedEntity; proposal: Proposal | null }>(`${BASE}/entities/${enc(id)}/source`, { method: "POST", json: body });
+export const MAX_UPLOAD_SOURCE_BYTES = 256_000;
+export const MAX_UPLOAD_NAME = 180;
+export const MAX_RECORD_SOURCES = 10;
+export const uploadSource = (id: string, body: import("@workspace/api-client-react").SharedSourceUpload) =>
+  apiJson<{ entity: SharedEntity; proposal: null }>(`${BASE}/entities/${enc(id)}/source-upload`, { method: "POST", json: body });
+/** Origin of a saved source snapshot. Uploads never carry repository/commit. */
+export const isUploadSource = (s: any) => s?.kind === "upload";
+export const sourceSummary = (s: any) => isUploadSource(s)
+  ? `upload:${s?.path ?? ""} (sha256 ${s?.sha256 ?? ""}, ${s?.byteLength ?? "?"} bytes, uploaded ${s?.uploadedAt ?? ""} by user ${s?.uploadedBy ?? ""})`
+  : `${s?.repository ?? ""}@${s?.commit ?? ""}:${s?.path ?? ""}`;
+export const getSource = (id: string, index: number, signal?: AbortSignal, version?: number) => apiJson<{ source: any; code: string }>(`${BASE}/entities/${enc(id)}/source/${index}${version !== undefined ? `?version=${version}` : ""}`, { signal, cache: "no-store" });
 export const evaluateSource = (id: string, expectedVersion: number) => apiJson<{ proposal: Proposal }>(`${BASE}/entities/${enc(id)}/evaluate`, { method: "POST", json: { expectedVersion } });
 export const listApprovals = (params: import("@workspace/api-client-react").ListSharedApprovalsParams, signal?: AbortSignal) => {
   const query = new URLSearchParams();
@@ -220,3 +238,17 @@ export const setCompanyDefault = (id: string, expectedVersion: number) => apiJso
 export const isEditor = (a?: { access?: Access | null } | null) => a?.access === "edit";
 export const stateKey = (s: string) => String(s || "").toLowerCase().replace(/[\s_]+/g, "-");
 export const sameId = (a: unknown, b: unknown) => a !== null && a !== undefined && b !== null && b !== undefined && String(a) === String(b);
+
+// ---------- project-wide GitHub source import (own runs only; project-scoped via apiFetch header) ----------
+export type ProjectSourceImport = import("@workspace/api-client-react").ProjectSourceImport;
+export type ProjectSourceEntry = import("@workspace/api-client-react").ProjectSourceEntry;
+export type ProjectSourceSelection = import("@workspace/api-client-react").ProjectSourceSelection;
+export const listSourceImports = (signal?: AbortSignal) => apiJson<ProjectSourceImport[]>(`${BASE}/github/imports`, { signal, cache: "no-store" });
+export const previewSourceImport = (body: ProjectSourceSelection) => apiJson<ProjectSourceImport>(`${BASE}/github/imports`, { method: "POST", json: body, cache: "no-store" });
+export const getSourceImport = (id: string, signal?: AbortSignal) => apiJson<ProjectSourceImport>(`${BASE}/github/imports/${enc(id)}`, { signal, cache: "no-store" });
+export const startSourceImport = (id: string) => apiJson<ProjectSourceImport>(`${BASE}/github/imports/${enc(id)}`, { method: "POST", json: { confirmed: true }, cache: "no-store" });
+export async function cancelSourceImport(id: string): Promise<ProjectSourceImport | null> {
+  const res = await apiFetch(`${BASE}/github/imports/${enc(id)}`, { method: "DELETE", cache: "no-store" });
+  if (!res.ok) { const e = new Error(await readApiError(res, "Cancel failed")) as ApiErr; e.status = res.status; throw e; }
+  return res.json().catch(() => null);
+}

@@ -1,4 +1,4 @@
 import { pool } from "@workspace/db";
-import { initializeReports } from "../src/reports/schema";
-await initializeReports();
+import { initializeProjects } from "../src/projects/service";
+await initializeProjects();
 await pool.end();

@@ -2,13 +2,36 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import PizZip from "pizzip";
 import { XMLValidator } from "fast-xml-parser";
-import { sample, validate, render, run } from "./reports/engine.mjs";
+import { sample, builtInTemplate, validate, render, run } from "./reports/engine.mjs";
 import { example } from "./reports/contract.mjs";
 import { processWord } from "./reports/process";
 import { permissions } from "./auth/permissions";
 
 const mutate = (fn: (zip: PizZip) => void) => { const zip = new PizZip(sample()); fn(zip); return zip.generate({ type: "nodebuffer", compression: "DEFLATE" }); };
 const changeText = (from: string, to: string) => mutate(zip => { zip.file("word/document.xml", zip.file("word/document.xml")!.asText().replace(from, to)); });
+
+test("supplied YASH default keeps twenty sections, embedded branding and safe object/interface output", async () => {
+  const template = builtInTemplate();
+  await validate(template);
+  const zip = new PizZip(template);
+  const xml = zip.file("word/document.xml")!.asText();
+  assert.equal((xml.replace(/<[^>]+>/g, "").match(/\d+\.\s(?:Document Information|Standard Fit|Executive Summary|Business Purpose|Object \/ Interface Overview|Process Flow|Input Parameters|Data Sources|Custom Tables|Business Rules|Outputs|Interfaces|Jobs|Security|Error Handling|Performance|Dependencies|Known Issues|Change History|Technical Objects)/g) ?? []).length, 20);
+  assert(zip.file("word/media/image1.png"));
+  assert(!Object.keys(zip.files).some(n => n.startsWith("customXml/")));
+  assert.doesNotMatch(xml, /ZFILE100|ZFILE_CFG|ZFILE_FMT|CG3Y|CLOSE DATASET|10-Jan-2026|F_BKPF_BUK/);
+  for (const kind of ["object", "interface"]) {
+    const bytes = await run({ mode: "builtin-render", entities: [{ ...example, entity_kind: kind, entity_id: `SYNTHETIC_${kind}`, notes: 'Literal <unsafe> & {classification}' }] });
+    const populated = new PizZip(bytes).file("word/document.xml")!.asText();
+    assert.match(populated, new RegExp(`SYNTHETIC_${kind}`));
+    assert.match(populated, /Literal &lt;unsafe&gt; &amp; \{classification\}/);
+    assert.match(populated, /Not provided/);
+    assert.equal(XMLValidator.validate(populated), true);
+    assert.doesNotMatch(populated, /\{entity_id\}|\{entity_kind\}|ZFILE100/);
+  }
+  assert.deepEqual(await run({ mode: "builtin-template" }), template);
+  const worker = await processWord({ mode: "builtin-render", entities: [example] });
+  assert(new PizZip(worker).file("word/document.xml"));
+});
 
 test("sample and populated reports are valid OpenXML; repeated rows and literal text", async () => {
   await validate(sample());

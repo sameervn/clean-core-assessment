@@ -15,7 +15,7 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: { index: path.resolve(artifactDir, "src/index.ts"), migrate: path.resolve(artifactDir, "scripts/migrate-client.ts") },
+    entryPoints: { index: path.resolve(artifactDir, "src/index.ts"), migrate: path.resolve(artifactDir, "scripts/migrate-client.ts"), provision: path.resolve(artifactDir, "scripts/provision-projects.ts") },
     platform: "node",
     bundle: true,
     format: "esm",
@@ -121,7 +121,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     },
   });
   await copyFile(path.resolve(artifactDir, "src/knowledge/parser-worker.mjs"), path.resolve(distDir, "parser-worker.mjs"));
-  for (const name of ["worker.mjs", "engine.mjs", "contract.mjs"]) {
+  for (const name of ["worker.mjs", "engine.mjs", "contract.mjs", "yash-clean-core.docx"]) {
     await copyFile(path.resolve(artifactDir, "src/reports", name), path.resolve(distDir, name));
   }
 }

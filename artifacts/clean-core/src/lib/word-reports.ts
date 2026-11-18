@@ -7,6 +7,8 @@ export const NOT_PROVIDED = "Not provided";
 export const NOT_APPLICABLE = "Not applicable";
 export const MAX_RENDER_ENTITIES = 50;
 export const SAMPLE_TEMPLATE_ID = "sample";
+export const BUILTIN_TEMPLATE_ID = "yash-clean-core";
+export const BUILTIN_TEMPLATE_NAME = "YASH Clean Core — 20-section assessment";
 
 export interface ReportTemplate { id: string; name: string; version: number; previewed: boolean; active: boolean; company?: boolean }
 export interface TemplateList { templates: ReportTemplate[]; activeId: string | null; configured: boolean }

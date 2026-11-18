@@ -8,14 +8,12 @@
 import type { ListReviewNotificationsFilter } from './listReviewNotificationsFilter';
 
 export type ListReviewNotificationsParams = {
-/**
- * Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.
- * @maxLength 19
- * @pattern ^[1-9][0-9]{0,18}$
- */
-cursor?: string;
-/**
- * Apply the same filter when following nextCursor.
- */
-filter?: ListReviewNotificationsFilter;
+  /**
+   * Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.
+   * @maxLength 19
+   * @pattern ^[1-9][0-9]{0,18}$
+   */
+  cursor?: string;
+  /** Apply the same filter when following nextCursor. */
+  filter?: ListReviewNotificationsFilter;
 };

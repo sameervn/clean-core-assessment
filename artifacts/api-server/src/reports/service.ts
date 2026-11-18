@@ -6,13 +6,16 @@ import type { Permission } from "../auth/permissions";
 import { AiError } from "../assessment-ai";
 import { uploadUrl, readObject, saveSealed, removeObject, storageConfigured } from "../knowledge/storage";
 import { processWord } from "./process";
+import { privateProjectRoot } from "../projects/storage-scope";
+import { lockProjectMembership } from "../projects/membership";
 
 // Deliberately separate metadata, lock, object namespace, and deletion criteria from knowledge.
 function path(id: string) {
   if (!storageConfigured()) throw new AiError(503, "Private template storage is not configured. Ask your administrator to configure PRIVATE_OBJECT_DIR.");
-  return `${process.env.PRIVATE_OBJECT_DIR!.replace(/\/$/, "")}/report-templates/${id}`;
+  return `${privateProjectRoot()}/report-templates/${id}`;
 }
 export async function fresh(identity: Identity, permission: Permission, c: Pick<PoolClient, "query"> = pool) {
+  await lockProjectMembership(c, identity.user.id);
   const row = (await c.query(`SELECT a.* FROM cc_accounts a JOIN cc_account_sessions s ON a.id=s.user_id
     WHERE s.token_hash=$1 AND a.id=$2 AND s.expires_at>now() AND a.active AND NOT a.must_change_password`,
   [identity.tokenHash, identity.user.id])).rows[0];

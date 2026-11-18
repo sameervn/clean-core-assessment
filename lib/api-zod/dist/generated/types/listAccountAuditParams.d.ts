@@ -13,13 +13,9 @@ export type ListAccountAuditParams = {
      */
     page?: number;
     action?: AccountAuditAction;
-    /**
-     * Inclusive UTC date
-     */
+    /** Inclusive UTC date */
     from?: Date;
-    /**
-     * Inclusive UTC date
-     */
+    /** Inclusive UTC date */
     to?: Date;
 };
 //# sourceMappingURL=listAccountAuditParams.d.ts.map

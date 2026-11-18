@@ -8,6 +8,139 @@
 import * as zod from 'zod';
 
 
+export const ListClientProjectsResponse = zod.object({
+  "clients": zod.array(zod.object({
+  "id": zod.uuid(),
+  "name": zod.string()
+})),
+  "projects": zod.array(zod.object({
+  "id": zod.uuid(),
+  "clientId": zod.uuid(),
+  "name": zod.string(),
+  "legacy": zod.boolean(),
+  "assigned": zod.boolean(),
+  "provisioningStatus": zod.enum(['pending', 'failed', 'ready', 'cancelled']),
+  "provisioningError": zod.string().nullable()
+}))
+})
+
+
+export const createAssessmentClientBodyNameMax = 120;
+
+
+
+export const CreateAssessmentClientBody = zod.object({
+  "name": zod.string().min(1).max(createAssessmentClientBodyNameMax)
+})
+
+export const CreateAssessmentClientResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string()
+})
+
+
+export const createClientProjectBodyNameMax = 120;
+
+
+
+export const CreateClientProjectBody = zod.object({
+  "clientId": zod.uuid(),
+  "name": zod.string().min(1).max(createClientProjectBodyNameMax)
+})
+
+export const CreateClientProjectResponse = zod.object({
+  "id": zod.uuid(),
+  "clientId": zod.uuid(),
+  "name": zod.string(),
+  "legacy": zod.boolean(),
+  "assigned": zod.boolean(),
+  "provisioningStatus": zod.enum(['pending', 'failed', 'ready', 'cancelled']),
+  "provisioningError": zod.string().nullable()
+})
+
+
+export const UpdateClientProjectParams = zod.object({
+  "projectId": zod.uuid()
+})
+
+export const updateClientProjectBodyNameMax = 120;
+
+
+
+export const UpdateClientProjectBody = zod.object({
+  "clientId": zod.uuid(),
+  "name": zod.string().min(1).max(updateClientProjectBodyNameMax)
+})
+
+export const UpdateClientProjectResponse = zod.object({
+  "id": zod.uuid(),
+  "clientId": zod.uuid(),
+  "name": zod.string(),
+  "legacy": zod.boolean(),
+  "assigned": zod.boolean(),
+  "provisioningStatus": zod.enum(['pending', 'failed', 'ready', 'cancelled']),
+  "provisioningError": zod.string().nullable()
+})
+
+
+export const ChangeProjectProvisioningParams = zod.object({
+  "projectId": zod.uuid()
+})
+
+export const ChangeProjectProvisioningBody = zod.object({
+  "action": zod.enum(['retry', 'cancel'])
+})
+
+export const ChangeProjectProvisioningResponse = zod.object({
+  "id": zod.uuid(),
+  "clientId": zod.uuid(),
+  "name": zod.string(),
+  "legacy": zod.boolean(),
+  "assigned": zod.boolean(),
+  "provisioningStatus": zod.enum(['pending', 'failed', 'ready', 'cancelled']),
+  "provisioningError": zod.string().nullable()
+})
+
+
+export const GetClientProjectMembersParams = zod.object({
+  "projectId": zod.uuid()
+})
+
+export const GetClientProjectMembersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "role": zod.enum(['Admin', 'Developer', 'Reviewer']),
+  "assigned": zod.boolean(),
+  "active": zod.boolean()
+}))
+})
+
+
+export const UpdateClientProjectMemberParams = zod.object({
+  "projectId": zod.uuid()
+})
+
+export const updateClientProjectMemberBodyUserIdMax = 100;
+
+
+
+export const UpdateClientProjectMemberBody = zod.object({
+  "userId": zod.string().min(1).max(updateClientProjectMemberBodyUserIdMax),
+  "enabled": zod.boolean()
+})
+
+export const UpdateClientProjectMemberResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "role": zod.enum(['Admin', 'Developer', 'Reviewer']),
+  "assigned": zod.boolean(),
+  "active": zod.boolean()
+}))
+})
+
+
 export const GetReviewNotificationPreferencesResponse = zod.object({
   "enabled": zod.boolean()
 })
@@ -682,13 +815,229 @@ export const AssignSharedReviewerResponse = zod.object({
 })
 
 
-export const SharedGithubStatusResponse = zod.unknown()
+export const SharedGithubStatusResponse = zod.object({
+  "configured": zod.boolean().describe('Secure credential storage is available on this server'),
+  "connected": zod.boolean(),
+  "repositories": zod.array(zod.string()).describe('This account\'s usable repository connections'),
+  "connections": zod.array(zod.object({
+  "repository": zod.string(),
+  "username": zod.string(),
+  "connectedAt": zod.coerce.date(),
+  "usable": zod.boolean().describe('Stored credential can be decrypted; live token expiry is checked on GitHub reads')
+}))
+})
 
 
-export const ConnectSharedGithubResponse = zod.unknown()
+export const checkSharedGithubBodyRepositoryMin = 3;
+export const checkSharedGithubBodyRepositoryMax = 200;
 
+
+
+export const CheckSharedGithubBody = zod.object({
+  "repository": zod.string().min(checkSharedGithubBodyRepositoryMin).max(checkSharedGithubBodyRepositoryMax)
+})
+
+export const CheckSharedGithubResponse = zod.object({
+  "repository": zod.string(),
+  "checkedAt": zod.coerce.date()
+})
+
+
+export const connectSharedGithubBodyRepositoryMin = 3;
+export const connectSharedGithubBodyRepositoryMax = 200;
+
+export const connectSharedGithubBodyUsernameMax = 39;
+
+export const connectSharedGithubBodyTokenMin = 20;
+export const connectSharedGithubBodyTokenMax = 255;
+
+
+
+export const ConnectSharedGithubBody = zod.object({
+  "repository": zod.string().min(connectSharedGithubBodyRepositoryMin).max(connectSharedGithubBodyRepositoryMax).describe('owner/repo or an HTTPS github.com repository URL'),
+  "username": zod.string().min(1).max(connectSharedGithubBodyUsernameMax).describe('GitHub account login; must match the token owner'),
+  "token": zod.string().min(connectSharedGithubBodyTokenMin).max(connectSharedGithubBodyTokenMax).describe('Fine-grained personal access token with Contents and Metadata read-only; not an account password')
+})
+
+export const ConnectSharedGithubResponse = zod.object({
+  "configured": zod.boolean().describe('Secure credential storage is available on this server'),
+  "connected": zod.boolean(),
+  "repositories": zod.array(zod.string()).describe('This account\'s usable repository connections'),
+  "connections": zod.array(zod.object({
+  "repository": zod.string(),
+  "username": zod.string(),
+  "connectedAt": zod.coerce.date(),
+  "usable": zod.boolean().describe('Stored credential can be decrypted; live token expiry is checked on GitHub reads')
+}))
+})
+
+
+export const disconnectSharedGithubQueryRepositoryMax = 200;
+
+
+
+export const DisconnectSharedGithubQueryParams = zod.object({
+  "repository": zod.coerce.string().max(disconnectSharedGithubQueryRepositoryMax).optional().describe('Saved owner/repository to remove; omit to remove all this account\'s connections')
+})
 
 export const DisconnectSharedGithubResponse = zod.unknown()
+
+
+export const ListProjectSourceImportsResponseItem = zod.object({
+  "id": zod.string(),
+  "repository": zod.string(),
+  "ref": zod.string(),
+  "folder": zod.string(),
+  "commit": zod.string(),
+  "status": zod.enum(['preview', 'running', 'completed', 'cancelled', 'interrupted']),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "assessmentId": zod.string(),
+  "assessmentName": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "version": zod.int(),
+  "state": zod.string(),
+  "paths": zod.array(zod.string()),
+  "status": zod.enum(['ready', 'deferred', 'ambiguous', 'unmatched', 'unchanged', 'imported', 'failed', 'cancelled']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string(),
+  "message": zod.string(),
+  "limit": zod.int()
+})
+export const ListProjectSourceImportsResponse = zod.array(ListProjectSourceImportsResponseItem)
+
+
+export const previewProjectSourceImportBodyRepositoryMin = 3;
+export const previewProjectSourceImportBodyRepositoryMax = 200;
+
+export const previewProjectSourceImportBodyRefMax = 200;
+
+export const previewProjectSourceImportBodyFolderMax = 500;
+
+
+
+export const PreviewProjectSourceImportBody = zod.object({
+  "repository": zod.string().min(previewProjectSourceImportBodyRepositoryMin).max(previewProjectSourceImportBodyRepositoryMax),
+  "ref": zod.string().min(1).max(previewProjectSourceImportBodyRefMax),
+  "folder": zod.string().max(previewProjectSourceImportBodyFolderMax)
+})
+
+export const PreviewProjectSourceImportResponse = zod.object({
+  "id": zod.string(),
+  "repository": zod.string(),
+  "ref": zod.string(),
+  "folder": zod.string(),
+  "commit": zod.string(),
+  "status": zod.enum(['preview', 'running', 'completed', 'cancelled', 'interrupted']),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "assessmentId": zod.string(),
+  "assessmentName": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "version": zod.int(),
+  "state": zod.string(),
+  "paths": zod.array(zod.string()),
+  "status": zod.enum(['ready', 'deferred', 'ambiguous', 'unmatched', 'unchanged', 'imported', 'failed', 'cancelled']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string(),
+  "message": zod.string(),
+  "limit": zod.int()
+})
+
+
+export const GetProjectSourceImportParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const GetProjectSourceImportResponse = zod.object({
+  "id": zod.string(),
+  "repository": zod.string(),
+  "ref": zod.string(),
+  "folder": zod.string(),
+  "commit": zod.string(),
+  "status": zod.enum(['preview', 'running', 'completed', 'cancelled', 'interrupted']),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "assessmentId": zod.string(),
+  "assessmentName": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "version": zod.int(),
+  "state": zod.string(),
+  "paths": zod.array(zod.string()),
+  "status": zod.enum(['ready', 'deferred', 'ambiguous', 'unmatched', 'unchanged', 'imported', 'failed', 'cancelled']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string(),
+  "message": zod.string(),
+  "limit": zod.int()
+})
+
+
+export const StartProjectSourceImportParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const StartProjectSourceImportBody = zod.object({
+  "confirmed": zod.literal(true)
+})
+
+export const StartProjectSourceImportResponse = zod.object({
+  "id": zod.string(),
+  "repository": zod.string(),
+  "ref": zod.string(),
+  "folder": zod.string(),
+  "commit": zod.string(),
+  "status": zod.enum(['preview', 'running', 'completed', 'cancelled', 'interrupted']),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "assessmentId": zod.string(),
+  "assessmentName": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "version": zod.int(),
+  "state": zod.string(),
+  "paths": zod.array(zod.string()),
+  "status": zod.enum(['ready', 'deferred', 'ambiguous', 'unmatched', 'unchanged', 'imported', 'failed', 'cancelled']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string(),
+  "message": zod.string(),
+  "limit": zod.int()
+})
+
+
+export const CancelProjectSourceImportParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const CancelProjectSourceImportResponse = zod.object({
+  "id": zod.string(),
+  "repository": zod.string(),
+  "ref": zod.string(),
+  "folder": zod.string(),
+  "commit": zod.string(),
+  "status": zod.enum(['preview', 'running', 'completed', 'cancelled', 'interrupted']),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "assessmentId": zod.string(),
+  "assessmentName": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "version": zod.int(),
+  "state": zod.string(),
+  "paths": zod.array(zod.string()),
+  "status": zod.enum(['ready', 'deferred', 'ambiguous', 'unmatched', 'unchanged', 'imported', 'failed', 'cancelled']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string(),
+  "message": zod.string(),
+  "limit": zod.int()
+})
 
 
 export const sharedGithubFilesQueryRepositoryMax = 200;
@@ -715,16 +1064,42 @@ export const mapSharedGithubSourceBodyRepositoryMax = 200;
 export const mapSharedGithubSourceBodyCommitRegExp = new RegExp('^[0-9a-f]{40}$');
 export const mapSharedGithubSourceBodyPathMax = 1000;
 
+export const mapSharedGithubSourceBodyPathsItemMax = 1000;
+
+export const mapSharedGithubSourceBodyPathsMax = 10;
+
 
 
 export const MapSharedGithubSourceBody = zod.object({
   "expectedVersion": zod.int().min(1),
   "repository": zod.string().max(mapSharedGithubSourceBodyRepositoryMax),
   "commit": zod.string().regex(mapSharedGithubSourceBodyCommitRegExp),
-  "path": zod.string().min(1).max(mapSharedGithubSourceBodyPathMax)
-})
+  "path": zod.string().min(1).max(mapSharedGithubSourceBodyPathMax).optional(),
+  "paths": zod.array(zod.string().min(1).max(mapSharedGithubSourceBodyPathsItemMax)).min(1).max(mapSharedGithubSourceBodyPathsMax).optional()
+}).describe('Provide exactly one of path or paths. All selected files are attached atomically in one new draft revision.')
 
 export const MapSharedGithubSourceResponse = zod.unknown()
+
+
+export const UploadSharedSourceParams = zod.object({
+  "id": zod.uuid()
+})
+
+
+export const uploadSharedSourceBodyFileNameMax = 180;
+
+export const uploadSharedSourceBodyFileBase64Min = 4;
+export const uploadSharedSourceBodyFileBase64Max = 341336;
+
+
+
+export const UploadSharedSourceBody = zod.object({
+  "expectedVersion": zod.int().min(1),
+  "fileName": zod.string().min(1).max(uploadSharedSourceBodyFileNameMax),
+  "fileBase64": zod.string().min(uploadSharedSourceBodyFileBase64Min).max(uploadSharedSourceBodyFileBase64Max).describe('Canonical base64 encoding of a UTF-8 .txt or .abap file')
+})
+
+export const UploadSharedSourceResponse = zod.unknown()
 
 
 export const readSharedSourcePathIndexMin = 0;
@@ -735,6 +1110,13 @@ export const readSharedSourcePathIndexMax = 9;
 export const ReadSharedSourceParams = zod.object({
   "id": zod.uuid(),
   "index": zod.coerce.number().int().min(readSharedSourcePathIndexMin).max(readSharedSourcePathIndexMax)
+})
+
+
+
+
+export const ReadSharedSourceQueryParams = zod.object({
+  "version": zod.coerce.number().int().min(1).optional().describe('Reject with 409 if this entity revision is no longer current')
 })
 
 export const ReadSharedSourceResponse = zod.unknown()
@@ -896,6 +1278,10 @@ export const ListReportTemplatesResponse = zod.object({
 
 export const WordTemplateReferenceResponse = zod.unknown()
 
+
+export const DownloadWordTemplateSampleQueryParams = zod.object({
+  "layout": zod.enum(['generic', 'yash']).optional().describe('Download the generic sample or the reusable YASH default layout.')
+})
 
 export const DownloadWordTemplateSampleResponse = zod.unknown()
 

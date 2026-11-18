@@ -2,14 +2,21 @@ import { Router, type RequestHandler } from "express";
 import { rateLimit } from "express-rate-limit";
 import { requestLimitOptions, requestLimitFailure } from "../request-limits";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import { pool } from "@workspace/db";
+import { CheckSharedGithubBody, CheckSharedGithubResponse, ConnectSharedGithubBody, SharedGithubStatusResponse,
+  StartProjectSourceImportBody, GetProjectSourceImportResponse, ListProjectSourceImportsResponse } from "@workspace/api-zod";
 import { requireSession } from "../auth/middleware";
 import { AiError } from "../assessment-ai";
-import { analyzeSource, files, githubConfig, source } from "../collaboration/github";
-import { current, editable, entity, event, expected, revision, transaction } from "../collaboration/service";
-import { readObject, removeObject } from "../knowledge/storage";
-import { storePrivate } from "../collaboration/files";
+import { analyzeSource, checkGithubRepository, files } from "../collaboration/github";
+import { githubConnectionInput, normalizeRepository } from "../collaboration/github-credentials";
+import { githubConnectionStatus, saveGithubConnection, savedGithubConfig } from "../collaboration/github-store";
+import { current, entity, expected, transaction } from "../collaboration/service";
+import { readObject } from "../knowledge/storage";
+import { mapGithubSources } from "../collaboration/source-mapping";
+import { uploadSourceFile } from "../collaboration/source-upload";
 import { guidanceDisclosure } from "../knowledge/retrieval";
+import { cancelSourceImport, getSourceImport, listSourceImports, previewSourceImport, startSourceImport } from "../collaboration/project-source-import";
 
 async function groundedProposal(sources: Array<{ path: string; code: string }>, identity: NonNullable<Express.Request["identity"]>) {
   const user = await current(pool, identity);
@@ -25,82 +32,89 @@ async function groundedProposal(sources: Array<{ path: string; code: string }>, 
 }
 
 export const assessmentGithubRouter = Router();
-assessmentGithubRouter.use(["/github", "/entities/:id/source", "/entities/:id/evaluate"],
+assessmentGithubRouter.use(["/github", "/entities/:id/source", "/entities/:id/source-upload", "/entities/:id/evaluate"],
   rateLimit(requestLimitOptions("assessment-github", 120, true)), requestLimitFailure);
 assessmentGithubRouter.use(requireSession);
+assessmentGithubRouter.post("/github/connect",
+  rateLimit(requestLimitOptions("github-credential-save", 10, true, 15 * 60_000)), requestLimitFailure);
+assessmentGithubRouter.post("/github/check",
+  rateLimit(requestLimitOptions("github-connection-check", 10, true, 60_000)), requestLimitFailure);
 const wrap = (fn: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await fn(req, res, next); }
   catch (e) { res.status(e instanceof AiError ? e.status : e instanceof z.ZodError ? 400 : 503).json({
     message: e instanceof AiError ? e.message : e instanceof z.ZodError ? "Invalid repository or source request." : "Source assessment unavailable. No draft was discarded.",
   }); }
 };
-async function connected(identity: NonNullable<Express.Request["identity"]>) {
-  const config = githubConfig();
-  if (!config) throw new AiError(503, "Administrator must configure a read-only GitHub token and approved repositories.");
-  const user = await current(pool, identity);
-  if (!["Admin", "Developer"].includes(user.role) || !user.permissions.includes("evidence")) throw new AiError(403, "Source ingestion requires Developer evidence permission.");
-  const connection = await pool.query("SELECT user_id FROM cc_github_connections WHERE user_id=$1", [user.id]);
-  if (!connection.rowCount) throw new AiError(409, "Connect the configured GitHub access first.");
-  return config;
-}
 assessmentGithubRouter.get("/github/status", wrap(async (req, res) => {
-  await current(pool, req.identity!);
-  const config = githubConfig();
-  res.json({ configured: !!config, connected: !!config && !!(await pool.query("SELECT user_id FROM cc_github_connections WHERE user_id=$1", [req.identity!.user.id])).rowCount, repositories: config?.repositories ?? [] });
+  res.setHeader("Cache-Control", "no-store");
+  res.json(SharedGithubStatusResponse.parse(await githubConnectionStatus(req.identity!)));
+}));
+assessmentGithubRouter.post("/github/check", wrap(async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const { repository: raw } = CheckSharedGithubBody.strict().parse(req.body);
+  const repository = normalizeRepository(raw);
+  const config = await savedGithubConfig(req.identity!, repository);
+  await checkGithubRepository(repository, config);
+  res.json(CheckSharedGithubResponse.parse({ repository, checkedAt: new Date().toISOString() }));
 }));
 assessmentGithubRouter.post("/github/connect", wrap(async (req, res) => {
-  const user = await current(pool, req.identity!);
-  if (!["Admin", "Developer"].includes(user.role) || !user.permissions.includes("evidence")) throw new AiError(403, "Developer evidence permission required.");
-  const config = githubConfig();
-  if (!config) throw new AiError(503, "Administrator must configure a read-only GitHub token and approved repositories.");
-  await pool.query("INSERT INTO cc_github_connections(user_id) VALUES($1) ON CONFLICT DO NOTHING", [user.id]);
-  res.json({ configured: true, connected: true, repositories: config.repositories });
+  res.setHeader("Cache-Control", "no-store");
+  const input = githubConnectionInput.parse(ConnectSharedGithubBody.strict().parse(req.body));
+  await saveGithubConnection(req.identity!, input);
+  res.json(SharedGithubStatusResponse.parse(await githubConnectionStatus(req.identity!)));
 }));
 assessmentGithubRouter.delete("/github/connect", wrap(async (req, res) => {
   await current(pool, req.identity!);
-  await pool.query("DELETE FROM cc_github_connections WHERE user_id=$1", [req.identity!.user.id]);
-  res.json({ connected: false });
+  const query = z.object({ repository: z.string().max(200).transform(normalizeRepository).optional() }).strict().parse(req.query);
+  if (query.repository) await pool.query("DELETE FROM cc_github_credentials WHERE user_id=$1 AND repository=$2", [req.identity!.user.id, query.repository]);
+  else await pool.query("DELETE FROM cc_github_credentials WHERE user_id=$1", [req.identity!.user.id]);
+  res.setHeader("Cache-Control", "no-store");
+  res.json(SharedGithubStatusResponse.parse(await githubConnectionStatus(req.identity!)));
 }));
 assessmentGithubRouter.get("/github/files", wrap(async (req, res) => {
-  const query = z.object({ repository: z.string().max(200), ref: z.string().min(1).max(200) }).parse(req.query);
-  res.json(await files(query.repository, query.ref, await connected(req.identity!)));
+  const query = z.object({ repository: z.string().max(200).transform(normalizeRepository), ref: z.string().min(1).max(200) }).parse(req.query);
+  res.json(await files(query.repository, query.ref, await savedGithubConfig(req.identity!, query.repository)));
+}));
+assessmentGithubRouter.get("/github/imports", wrap(async (req, res) => {
+  res.json(ListProjectSourceImportsResponse.parse(await listSourceImports(req.identity!)));
+}));
+assessmentGithubRouter.post("/github/imports",
+  rateLimit(requestLimitOptions("github-import-preview", 5, true, 60_000)), requestLimitFailure,
+  wrap(async (req, res) => {
+    res.json(GetProjectSourceImportResponse.parse(await previewSourceImport(req.identity!, req.body)));
+  }));
+assessmentGithubRouter.get("/github/imports/:id", wrap(async (req, res) => {
+  res.json(GetProjectSourceImportResponse.parse(await getSourceImport(req.identity!, z.string().uuid().parse(req.params.id))));
+}));
+assessmentGithubRouter.post("/github/imports/:id", wrap(async (req, res) => {
+  const body = StartProjectSourceImportBody.strict().parse(req.body);
+  if (body.confirmed !== true) throw new AiError(400, "Explicit source import confirmation is required.");
+  res.json(GetProjectSourceImportResponse.parse(await startSourceImport(req.identity!, z.string().uuid().parse(req.params.id))));
+}));
+assessmentGithubRouter.delete("/github/imports/:id", wrap(async (req, res) => {
+  res.json(GetProjectSourceImportResponse.parse(await cancelSourceImport(req.identity!, z.string().uuid().parse(req.params.id))));
 }));
 assessmentGithubRouter.post("/entities/:id/source", wrap(async (req, res) => {
   const id = z.string().uuid().parse(req.params.id);
-  const body = z.object({ expectedVersion: z.number().int().positive(), repository: z.string().max(200),
-    commit: z.string().regex(/^[0-9a-f]{40}$/), path: z.string().min(1).max(1000) }).strict().parse(req.body);
-  const config = await connected(req.identity!);
-  await transaction(async c => {
-    const { row, user, assessment } = await entity(c, req.identity!, id);
-    if (!editable(user, assessment, row).developer) throw new AiError(403, "Only an editor can map source.");
-    expected(row, body.expectedVersion);
-  });
-  const fetched = await source(body.repository, body.commit, body.path, config);
-  const proposal = await groundedProposal([{ path: body.path, code: fetched.code }], req.identity!);
-  const objectPath = await storePrivate("source", fetched.bytes);
-  try {
-    const updated = await transaction(async c => {
-      await connected(req.identity!); // permission/connection changes during fetch fail closed
-      const { row, user, assessment } = await entity(c, req.identity!, id);
-      if (!editable(user, assessment, row).developer) throw new AiError(403, "Only an editor can map source.");
-      expected(row, body.expectedVersion);
-      const sources = row.sources.filter((s: any) => s.repository !== body.repository || s.path !== body.path);
-      if (sources.length >= 10) throw new AiError(400, "At most ten source files per item.");
-      sources.push({ repository: body.repository, commit: body.commit, path: body.path, sha256: fetched.sha256, blob: fetched.blob, objectPath });
-      const updated = (await c.query("UPDATE cc_assessment_entities SET sources=$2,version=version+1,state='Draft',updated_at=now() WHERE id=$1 RETURNING *", [id, JSON.stringify(sources)])).rows[0];
-      await revision(c, req.identity!, updated, "GitHub source snapshot");
-      await event(c, req.identity!, updated, "source mapped");
-      return updated;
-    });
-    res.json({ entity: updated, proposal });
-  } catch (e) { await removeObject(objectPath).catch(() => undefined); throw e; }
+  res.json(await mapGithubSources(req.identity!, id, req.body));
 }));
+assessmentGithubRouter.post("/entities/:id/source-upload",
+  rateLimit(requestLimitOptions("assessment-source-upload", 30, true, 60_000)), requestLimitFailure,
+  wrap(async (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const id = z.string().uuid().parse(req.params.id);
+    res.json(await uploadSourceFile(req.identity!, id, req.body));
+  }));
 assessmentGithubRouter.get("/entities/:id/source/:index", wrap(async (req, res) => {
   await transaction(async c => {
     const { row } = await entity(c, req.identity!, z.string().uuid().parse(req.params.id));
+    const query = z.object({ version: z.coerce.number().int().positive().optional() }).strict().parse(req.query);
+    if (query.version !== undefined) expected(row, query.version);
     const selected = row.sources[z.coerce.number().int().min(0).max(9).parse(req.params.index)];
     if (!selected) throw new AiError(404, "Source snapshot not found.");
-    res.json({ source: selected, code: (await readObject(selected.objectPath)).toString("utf8") });
+    const bytes = await readObject(selected.objectPath);
+    if (createHash("sha256").update(bytes).digest("hex") !== selected.sha256) throw new AiError(503, "Saved source integrity check failed. No assessment was changed.");
+    res.json({ source: selected, code: bytes.toString("utf8") });
   });
 }));
 assessmentGithubRouter.post("/entities/:id/evaluate", wrap(async (req, res) => {

@@ -1,8 +1,9 @@
+import { registerUnsavedWork } from "@/lib/project-scope";
 import { YashLogo } from "@/components/yash-logo";
 import { useMutation } from "@tanstack/react-query";
 import {
   Database, Target, Play, FileJson, FileText,
-  Network, GitCommit, Zap, X, ListTree,
+  Network, GitCommit, GitBranch, Zap, X, ListTree,
   FlaskConical, Download, Settings2, ShieldAlert,
   Edit, Plus, LayoutDashboard, FileSpreadsheet, FileIcon,
   ChevronDown, Info, Link as LinkIcon, HardDrive
@@ -18,6 +19,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { csvCell } from "@/lib/csv";
+import { isDemoEvidence, unloadDemoWorkspace } from "@/lib/demo-evidence";
 import { exportSourceVersions } from "@/lib/source-versions";
 import { solutionExplanation, recommendationConfidenceExplanation } from "@/lib/solution-recommendation-explanation";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -37,8 +39,10 @@ import { allEntities } from "@/lib/word-reports";
 import { itemComplexitySize, itemComplexityLabel, COMPLEXITY_SIZES } from "@/lib/complexity-size";
 import { usageFor, usageCounts, USAGE_LABEL } from "@/lib/usage-status";
 import { UsageTab } from "@/components/usage-tab";
+import { GithubConnections } from "@/components/github-connections";
 import { PublishSharedButton } from "@/components/publish-shared";
 import { SendForApproval } from "@/components/send-for-approval";
+import { WorkspaceSource } from "@/components/workspace-source";
 import { ApprovedAssessmentsFolder, CompanyTemplatesSection } from "@/components/approved-exports";
 import { classificationOrigin, loadPendingClassification, writePendingClassification, type PendingClassification } from "@/lib/workspace-store";
 
@@ -72,6 +76,7 @@ interface EvidenceRecord {
     freshness: string;
     coverage: number;
     confidence: "low" | "medium" | "high";
+    demo?: boolean;
   };
 }
 
@@ -389,6 +394,8 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
   const [pendingReplace, setPendingReplace] = useState<PendingReplace | null>(null);
   const dirtyRef = useRef(false);
   const saveChain = useRef<Promise<void>>(Promise.resolve());
+  /** Debounced snapshot not yet handed to storage; flushed on unmount (e.g. project switch). */
+  const pendingSnapshotRef = useRef<StoredWorkspace | null>(null);
   const saveSeq = useRef(0);
   const skipNextSave = useRef(true);
   const revisionRef = useRef<string | null>(null);
@@ -509,6 +516,8 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
         setSaveError(e?.message || "Write failed");
         setSaveState("error");
       });
+    pendingSnapshotRef.current = null;
+    store.track(saveChain.current);
   }, [unreadable, store]);
 
   // Serialize this tab's saves; storage checks revisions atomically across tabs.
@@ -519,9 +528,21 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     if (conflictRef.current) return;
     saveSeq.current++; // invalidate any in-flight save so it cannot mark these newer changes as saved
     setSaveState("pending");
+    pendingSnapshotRef.current = snapshot;
     const t = window.setTimeout(() => persistNow(snapshot), 400);
     return () => window.clearTimeout(t);
   }, [snapshot, hydrated, unreadable, persistNow]);
+
+  // Flush a queued autosave into THIS store before it is disposed (store waits for tracked saves).
+  const persistNowRef = useRef(persistNow);
+  persistNowRef.current = persistNow;
+  useEffect(() => () => {
+    const pending = pendingSnapshotRef.current;
+    if (pending) persistNowRef.current(pending);
+  }, []);
+
+  // Project switch guard: conservatively confirm whenever a saved assessment workspace is open.
+  useEffect(() => (mode.kind === "saved" ? registerUnsavedWork(() => true) : undefined), [mode.kind]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -741,6 +762,31 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
   const requestDemo = () => {
     if (hasWork) setPendingReplace({ kind: "demo", onConfirm: () => loadDemoData.mutate() });
     else loadDemoData.mutate();
+  };
+
+  const hasDemoData = evidence.some(isDemoEvidence);
+  const demoActionBusy = loadDemoData.isPending || uploadEvidence.isPending || runAssessment.isPending || overrideDraft !== null;
+  const demoUnloadState = useRef({ snapshot, busy: demoActionBusy });
+  demoUnloadState.current = { snapshot, busy: demoActionBusy };
+  const requestUnloadDemo = () => {
+    if (!hasDemoData || demoActionBusy) return;
+    setPendingReplace({
+      kind: "unload-demo",
+      onConfirm: () => void guarded("reset", () => {
+        if (demoUnloadState.current.snapshot !== snapshot || demoUnloadState.current.busy) {
+          toast({ title: "Workspace changed", description: "Nothing was removed. Wait for current work to finish, then try unloading demo data again." });
+          return;
+        }
+        const unloaded = unloadDemoWorkspace(snapshot);
+        replaceWorkspace(unloaded);
+        toast({
+          title: "Demo data unloaded",
+          description: unloaded.evidence.length
+            ? "Uploaded evidence was kept. Run the assessment again to rebuild results without demo data."
+            : "The demo workspace is now empty. You can upload your own evidence.",
+        });
+      }),
+    });
   };
 
   const saveBaseline = () => void guarded("baseline", () => {
@@ -1048,7 +1094,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     setSystem: (v: string) => { setSystem(v); setAssessment(null); },
     setTargetRelease: (v: string) => { setTargetRelease(v); setAssessment(null); },
     setWeighted: (v: boolean) => { setWeighted(v); setAssessment(null); },
-    uploadEvidence, runAssessment, loadDemoData, requestDemo, saveBaseline, handleExport, handleSaveOverride, handleSaveBulkOverride, toast,
+    uploadEvidence, runAssessment, loadDemoData, requestDemo, hasDemoData, demoActionBusy, requestUnloadDemo, saveBaseline, handleExport, handleSaveOverride, handleSaveBulkOverride, toast,
     exportBackup, handleRestoreFile,
     /** Synchronous backup download; callers must already be authorized for export. */
     downloadBackupNow: () => downloadBlob(JSON.stringify(buildBackup(snapshot), null, 2), `clean-core-workspace-${snapshot.system}-${new Date().toISOString().slice(0, 10)}.json`, "application/json"), requestReset, saveState, saveError, lastSavedAt, retrySave: () => persistNow(snapshot),
@@ -1069,6 +1115,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
     { id: "roadmap", label: "Mitigation Roadmap", icon: Target },
     { id: "usage", label: "Usage", icon: Zap },
     { id: "evidence", label: "Evidence & Sources", icon: Database },
+    { id: "github", label: "GitHub Connections", icon: GitBranch },
     { id: "export", label: "Export Center", icon: Download },
   ];
 
@@ -1302,6 +1349,7 @@ export default function CleanCoreAssessmentPage({ mode, access, headerExtras }: 
               <LazySection load={loadEvidenceTab} section="Evidence" componentProps={{ ctx, evidenceTypes: EVIDENCE_TYPES }} canReload={ctx.canReload} onSafeReload={ctx.safeReload} onExportBackup={ctx.exportBackup} />
             )}
             {activeTab === 'export' && <ExportCenterTab ctx={ctx} />}
+            {activeTab === 'github' && <GithubConnections />}
            {activeTab === 'usage' && <UsageTab ctx={ctx} />}
          </main>
       </div>
@@ -1795,7 +1843,7 @@ function ObjectDetailPanel({ id, ctx, onClose }: any) {
   };
 
   return (
-     <Card className="w-[450px] shrink-0 flex flex-col h-full rounded-md border shadow-lg overflow-hidden animate-in slide-in-from-right-4">
+     <Card className="w-full max-w-full md:w-[450px] shrink-0 flex flex-col h-full rounded-md border shadow-lg overflow-hidden animate-in slide-in-from-right-4">
         <CardHeader className="p-4 border-b shrink-0 flex flex-row items-start justify-between space-y-0 bg-muted/20">
             <div>
                <CardTitle className="text-lg flex items-center gap-2">{item.objectName}</CardTitle>
@@ -1807,6 +1855,7 @@ function ObjectDetailPanel({ id, ctx, onClose }: any) {
         <ScrollArea className="flex-1 p-4">
             <div className="space-y-6">
                <SendForApproval ctx={ctx} item={item} kind="object" unsaved={narrative !== (ctx.narratives[id] || "") || !!reason.trim() || level !== item.classification} />
+               <WorkspaceSource ctx={ctx} item={item} kind="object" unsaved={narrative !== (ctx.narratives[id] || "") || !!reason.trim() || level !== item.classification} />
                <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Classification Reasoning</h4>
                   <div className="flex flex-col gap-2">
@@ -2051,7 +2100,7 @@ function InterfaceDetailPanel({ id, ctx, onClose }: any) {
   };
 
   return (
-     <Card className="w-[450px] shrink-0 flex flex-col h-full rounded-md border shadow-lg overflow-hidden animate-in slide-in-from-right-4">
+     <Card className="w-full max-w-full md:w-[450px] shrink-0 flex flex-col h-full rounded-md border shadow-lg overflow-hidden animate-in slide-in-from-right-4">
         <CardHeader className="p-4 border-b shrink-0 flex flex-row items-start justify-between space-y-0 bg-muted/20">
             <div>
                <CardTitle className="text-lg flex items-center gap-2">{item.objectName}</CardTitle>
@@ -2065,6 +2114,7 @@ function InterfaceDetailPanel({ id, ctx, onClose }: any) {
         <ScrollArea className="flex-1 p-4">
             <div className="space-y-6">
                <SendForApproval ctx={ctx} item={item} kind="interface" unsaved={narrative !== (ctx.narratives[id] || "") || !!reason.trim() || level !== item.classification} />
+               <WorkspaceSource ctx={ctx} item={item} kind="interface" unsaved={narrative !== (ctx.narratives[id] || "") || !!reason.trim() || level !== item.classification} />
                <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Classification Reasoning</h4>
                   <div className="flex flex-col gap-2">

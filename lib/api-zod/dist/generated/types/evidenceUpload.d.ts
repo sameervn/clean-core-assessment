@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 export interface EvidenceUpload {
-    file: Blob;
+    file: Blob | File;
     type: string;
 }
 //# sourceMappingURL=evidenceUpload.d.ts.map

@@ -7,12 +7,8 @@
  */
 
 export type SharedGithubFilesParams = {
-/**
- * @maxLength 200
- */
-repository: string;
-/**
- * @maxLength 200
- */
-ref: string;
+  /** @maxLength 200 */
+  repository: string;
+  /** @maxLength 200 */
+  ref: string;
 };

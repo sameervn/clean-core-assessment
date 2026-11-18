@@ -20,7 +20,9 @@ secret manager, never Helm values, ConfigMaps, build arguments or logs.
 | LOG_LEVEL | stdout/stderr Pino level | no | no | info | warn |
 | CC_RUNTIME_ENV_FILE | Absolute path to optional mounted env file; loaded before app and migration imports; injected environment wins | no | file contains secrets | unset (no file read) | /etc/clean-core/.env |
 | CC_STATIC_DIR | Opt-in compiled frontend directory; absent preserves Replit split services | container | no | — | /app/public |
-| CC_SCHEMA_BOOTSTRAP | Allow legacy runtime knowledge/template DDL; false with migration identity | no | no | true | false |
+| CC_SCHEMA_BOOTSTRAP | Apply project-aware startup upgrades; use false for DML-only API. Admin creation queues setup for the separate provisioner. | no | no | true | false |
+| CC_PROJECT_OWNER_ROLE | Operator migration/provisioner only: shared NOLOGIN owner for project schemas; pair with runtime role. Never grant API membership. | no | no | unset | clean_core_project_owner |
+| CC_PROJECT_RUNTIME_ROLE | Operator migration/provisioner only: API role receiving DML grants before project becomes ready. | no | no | unset | clean_core_app |
 | CC_REPLICA_COUNT | Scaling validation; Helm sets max replicas for HPA | no | no | 1 | 2 |
 | CC_API_WORKER_COUNT | Declare API processes per replica; multiple workers require shared HTTP limits | no | no | 1 | 2 |
 | CC_HTTP_LIMITER | local or redis-rest; shared mode required for multiple API processes/replicas | scaling | no | local | redis-rest |
@@ -64,14 +66,15 @@ secret manager, never Helm values, ConfigMaps, build arguments or logs.
 
 ## Read-only GitHub assessment source
 
-| Variable | Purpose | Required | Secret | Default | Example |
-|---|---|---|---|---|---|
-| CC_GITHUB_TOKEN | Fine-grained Contents/Metadata read-only token for approved repositories | GitHub ingestion | yes | disabled | REPLACE |
-| CC_GITHUB_REPOSITORIES | Comma-separated exact owner/repo allowlist | GitHub ingestion | no | disabled | client/abap-source |
+Repository, GitHub username and fine-grained read-only personal access token are
+entered in the application's **GitHub Connections** tab, not `.env`. Credentials
+are encrypted per account in PostgreSQL. The existing `SESSION_SECRET` (32+
+characters) derives the encryption key and must be consistent across replicas;
+rotating it requires users to reconnect. Legacy `CC_GITHUB_TOKEN` and
+`CC_GITHUB_REPOSITORIES` variables are no longer used.
 
-No source is executed or sent to AI by deterministic evaluation. Connection is
-an explicit account opt-in to administrator-managed service access. See
-`docs/collaborative-assessments.md` for bounds and shared-storage requirements.
+No source is executed or sent to AI by deterministic evaluation. See
+`docs/collaborative-assessments.md` for token permissions, limits and lifecycle.
 
 ## SDK-managed identity
 

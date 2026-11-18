@@ -6,6 +6,135 @@
  * OpenAPI spec version: 0.1.0
  */
 import * as zod from 'zod';
+export declare const ListClientProjectsResponse: zod.ZodObject<{
+    clients: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodUUID;
+        name: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    projects: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodUUID;
+        clientId: zod.ZodUUID;
+        name: zod.ZodString;
+        legacy: zod.ZodBoolean;
+        assigned: zod.ZodBoolean;
+        provisioningStatus: zod.ZodEnum<{
+            pending: "pending";
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+        }>;
+        provisioningError: zod.ZodNullable<zod.ZodString>;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const createAssessmentClientBodyNameMax = 120;
+export declare const CreateAssessmentClientBody: zod.ZodObject<{
+    name: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const CreateAssessmentClientResponse: zod.ZodObject<{
+    id: zod.ZodUUID;
+    name: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const createClientProjectBodyNameMax = 120;
+export declare const CreateClientProjectBody: zod.ZodObject<{
+    clientId: zod.ZodUUID;
+    name: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const CreateClientProjectResponse: zod.ZodObject<{
+    id: zod.ZodUUID;
+    clientId: zod.ZodUUID;
+    name: zod.ZodString;
+    legacy: zod.ZodBoolean;
+    assigned: zod.ZodBoolean;
+    provisioningStatus: zod.ZodEnum<{
+        pending: "pending";
+        failed: "failed";
+        ready: "ready";
+        cancelled: "cancelled";
+    }>;
+    provisioningError: zod.ZodNullable<zod.ZodString>;
+}, zod.z.core.$strip>;
+export declare const UpdateClientProjectParams: zod.ZodObject<{
+    projectId: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const updateClientProjectBodyNameMax = 120;
+export declare const UpdateClientProjectBody: zod.ZodObject<{
+    clientId: zod.ZodUUID;
+    name: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const UpdateClientProjectResponse: zod.ZodObject<{
+    id: zod.ZodUUID;
+    clientId: zod.ZodUUID;
+    name: zod.ZodString;
+    legacy: zod.ZodBoolean;
+    assigned: zod.ZodBoolean;
+    provisioningStatus: zod.ZodEnum<{
+        pending: "pending";
+        failed: "failed";
+        ready: "ready";
+        cancelled: "cancelled";
+    }>;
+    provisioningError: zod.ZodNullable<zod.ZodString>;
+}, zod.z.core.$strip>;
+export declare const ChangeProjectProvisioningParams: zod.ZodObject<{
+    projectId: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const ChangeProjectProvisioningBody: zod.ZodObject<{
+    action: zod.ZodEnum<{
+        retry: "retry";
+        cancel: "cancel";
+    }>;
+}, zod.z.core.$strip>;
+export declare const ChangeProjectProvisioningResponse: zod.ZodObject<{
+    id: zod.ZodUUID;
+    clientId: zod.ZodUUID;
+    name: zod.ZodString;
+    legacy: zod.ZodBoolean;
+    assigned: zod.ZodBoolean;
+    provisioningStatus: zod.ZodEnum<{
+        pending: "pending";
+        failed: "failed";
+        ready: "ready";
+        cancelled: "cancelled";
+    }>;
+    provisioningError: zod.ZodNullable<zod.ZodString>;
+}, zod.z.core.$strip>;
+export declare const GetClientProjectMembersParams: zod.ZodObject<{
+    projectId: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const GetClientProjectMembersResponse: zod.ZodObject<{
+    users: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        username: zod.ZodString;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
+        assigned: zod.ZodBoolean;
+        active: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const UpdateClientProjectMemberParams: zod.ZodObject<{
+    projectId: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const updateClientProjectMemberBodyUserIdMax = 100;
+export declare const UpdateClientProjectMemberBody: zod.ZodObject<{
+    userId: zod.ZodString;
+    enabled: zod.ZodBoolean;
+}, zod.z.core.$strip>;
+export declare const UpdateClientProjectMemberResponse: zod.ZodObject<{
+    users: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        username: zod.ZodString;
+        role: zod.ZodEnum<{
+            Admin: "Admin";
+            Developer: "Developer";
+            Reviewer: "Reviewer";
+        }>;
+        assigned: zod.ZodBoolean;
+        active: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
 export declare const GetReviewNotificationPreferencesResponse: zod.ZodObject<{
     enabled: zod.ZodBoolean;
 }, zod.z.core.$strip>;
@@ -580,9 +709,301 @@ export declare const AssignSharedReviewerResponse: zod.ZodObject<{
         reviewer_id: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     }, zod.z.core.$strip>;
 }, zod.z.core.$strip>;
-export declare const SharedGithubStatusResponse: zod.ZodUnknown;
-export declare const ConnectSharedGithubResponse: zod.ZodUnknown;
+export declare const SharedGithubStatusResponse: zod.ZodObject<{
+    configured: zod.ZodBoolean;
+    connected: zod.ZodBoolean;
+    repositories: zod.ZodArray<zod.ZodString>;
+    connections: zod.ZodArray<zod.ZodObject<{
+        repository: zod.ZodString;
+        username: zod.ZodString;
+        connectedAt: zod.z.ZodCoercedDate<unknown>;
+        usable: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const checkSharedGithubBodyRepositoryMin = 3;
+export declare const checkSharedGithubBodyRepositoryMax = 200;
+export declare const CheckSharedGithubBody: zod.ZodObject<{
+    repository: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const CheckSharedGithubResponse: zod.ZodObject<{
+    repository: zod.ZodString;
+    checkedAt: zod.z.ZodCoercedDate<unknown>;
+}, zod.z.core.$strip>;
+export declare const connectSharedGithubBodyRepositoryMin = 3;
+export declare const connectSharedGithubBodyRepositoryMax = 200;
+export declare const connectSharedGithubBodyUsernameMax = 39;
+export declare const connectSharedGithubBodyTokenMin = 20;
+export declare const connectSharedGithubBodyTokenMax = 255;
+export declare const ConnectSharedGithubBody: zod.ZodObject<{
+    repository: zod.ZodString;
+    username: zod.ZodString;
+    token: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const ConnectSharedGithubResponse: zod.ZodObject<{
+    configured: zod.ZodBoolean;
+    connected: zod.ZodBoolean;
+    repositories: zod.ZodArray<zod.ZodString>;
+    connections: zod.ZodArray<zod.ZodObject<{
+        repository: zod.ZodString;
+        username: zod.ZodString;
+        connectedAt: zod.z.ZodCoercedDate<unknown>;
+        usable: zod.ZodBoolean;
+    }, zod.z.core.$strip>>;
+}, zod.z.core.$strip>;
+export declare const disconnectSharedGithubQueryRepositoryMax = 200;
+export declare const DisconnectSharedGithubQueryParams: zod.ZodObject<{
+    repository: zod.ZodOptional<zod.z.ZodCoercedString<unknown>>;
+}, zod.z.core.$strip>;
 export declare const DisconnectSharedGithubResponse: zod.ZodUnknown;
+export declare const ListProjectSourceImportsResponseItem: zod.ZodObject<{
+    id: zod.ZodString;
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+    commit: zod.ZodString;
+    status: zod.ZodEnum<{
+        cancelled: "cancelled";
+        preview: "preview";
+        running: "running";
+        completed: "completed";
+        interrupted: "interrupted";
+    }>;
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodString;
+        assessmentName: zod.ZodString;
+        name: zod.ZodString;
+        kind: zod.ZodString;
+        version: zod.ZodInt;
+        state: zod.ZodString;
+        paths: zod.ZodArray<zod.ZodString>;
+        status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+            deferred: "deferred";
+            ambiguous: "ambiguous";
+            unmatched: "unmatched";
+            unchanged: "unchanged";
+            imported: "imported";
+        }>;
+        message: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    createdAt: zod.ZodString;
+    message: zod.ZodString;
+    limit: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const ListProjectSourceImportsResponse: zod.ZodArray<zod.ZodObject<{
+    id: zod.ZodString;
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+    commit: zod.ZodString;
+    status: zod.ZodEnum<{
+        cancelled: "cancelled";
+        preview: "preview";
+        running: "running";
+        completed: "completed";
+        interrupted: "interrupted";
+    }>;
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodString;
+        assessmentName: zod.ZodString;
+        name: zod.ZodString;
+        kind: zod.ZodString;
+        version: zod.ZodInt;
+        state: zod.ZodString;
+        paths: zod.ZodArray<zod.ZodString>;
+        status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+            deferred: "deferred";
+            ambiguous: "ambiguous";
+            unmatched: "unmatched";
+            unchanged: "unchanged";
+            imported: "imported";
+        }>;
+        message: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    createdAt: zod.ZodString;
+    message: zod.ZodString;
+    limit: zod.ZodInt;
+}, zod.z.core.$strip>>;
+export declare const previewProjectSourceImportBodyRepositoryMin = 3;
+export declare const previewProjectSourceImportBodyRepositoryMax = 200;
+export declare const previewProjectSourceImportBodyRefMax = 200;
+export declare const previewProjectSourceImportBodyFolderMax = 500;
+export declare const PreviewProjectSourceImportBody: zod.ZodObject<{
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const PreviewProjectSourceImportResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+    commit: zod.ZodString;
+    status: zod.ZodEnum<{
+        cancelled: "cancelled";
+        preview: "preview";
+        running: "running";
+        completed: "completed";
+        interrupted: "interrupted";
+    }>;
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodString;
+        assessmentName: zod.ZodString;
+        name: zod.ZodString;
+        kind: zod.ZodString;
+        version: zod.ZodInt;
+        state: zod.ZodString;
+        paths: zod.ZodArray<zod.ZodString>;
+        status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+            deferred: "deferred";
+            ambiguous: "ambiguous";
+            unmatched: "unmatched";
+            unchanged: "unchanged";
+            imported: "imported";
+        }>;
+        message: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    createdAt: zod.ZodString;
+    message: zod.ZodString;
+    limit: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const GetProjectSourceImportParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const GetProjectSourceImportResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+    commit: zod.ZodString;
+    status: zod.ZodEnum<{
+        cancelled: "cancelled";
+        preview: "preview";
+        running: "running";
+        completed: "completed";
+        interrupted: "interrupted";
+    }>;
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodString;
+        assessmentName: zod.ZodString;
+        name: zod.ZodString;
+        kind: zod.ZodString;
+        version: zod.ZodInt;
+        state: zod.ZodString;
+        paths: zod.ZodArray<zod.ZodString>;
+        status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+            deferred: "deferred";
+            ambiguous: "ambiguous";
+            unmatched: "unmatched";
+            unchanged: "unchanged";
+            imported: "imported";
+        }>;
+        message: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    createdAt: zod.ZodString;
+    message: zod.ZodString;
+    limit: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const StartProjectSourceImportParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const StartProjectSourceImportBody: zod.ZodObject<{
+    confirmed: zod.ZodLiteral<true>;
+}, zod.z.core.$strip>;
+export declare const StartProjectSourceImportResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+    commit: zod.ZodString;
+    status: zod.ZodEnum<{
+        cancelled: "cancelled";
+        preview: "preview";
+        running: "running";
+        completed: "completed";
+        interrupted: "interrupted";
+    }>;
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodString;
+        assessmentName: zod.ZodString;
+        name: zod.ZodString;
+        kind: zod.ZodString;
+        version: zod.ZodInt;
+        state: zod.ZodString;
+        paths: zod.ZodArray<zod.ZodString>;
+        status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+            deferred: "deferred";
+            ambiguous: "ambiguous";
+            unmatched: "unmatched";
+            unchanged: "unchanged";
+            imported: "imported";
+        }>;
+        message: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    createdAt: zod.ZodString;
+    message: zod.ZodString;
+    limit: zod.ZodInt;
+}, zod.z.core.$strip>;
+export declare const CancelProjectSourceImportParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const CancelProjectSourceImportResponse: zod.ZodObject<{
+    id: zod.ZodString;
+    repository: zod.ZodString;
+    ref: zod.ZodString;
+    folder: zod.ZodString;
+    commit: zod.ZodString;
+    status: zod.ZodEnum<{
+        cancelled: "cancelled";
+        preview: "preview";
+        running: "running";
+        completed: "completed";
+        interrupted: "interrupted";
+    }>;
+    entries: zod.ZodArray<zod.ZodObject<{
+        id: zod.ZodString;
+        assessmentId: zod.ZodString;
+        assessmentName: zod.ZodString;
+        name: zod.ZodString;
+        kind: zod.ZodString;
+        version: zod.ZodInt;
+        state: zod.ZodString;
+        paths: zod.ZodArray<zod.ZodString>;
+        status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
+            cancelled: "cancelled";
+            deferred: "deferred";
+            ambiguous: "ambiguous";
+            unmatched: "unmatched";
+            unchanged: "unchanged";
+            imported: "imported";
+        }>;
+        message: zod.ZodString;
+    }, zod.z.core.$strip>>;
+    createdAt: zod.ZodString;
+    message: zod.ZodString;
+    limit: zod.ZodInt;
+}, zod.z.core.$strip>;
 export declare const sharedGithubFilesQueryRepositoryMax = 200;
 export declare const sharedGithubFilesQueryRefMax = 200;
 export declare const SharedGithubFilesQueryParams: zod.ZodObject<{
@@ -596,18 +1017,36 @@ export declare const MapSharedGithubSourceParams: zod.ZodObject<{
 export declare const mapSharedGithubSourceBodyRepositoryMax = 200;
 export declare const mapSharedGithubSourceBodyCommitRegExp: RegExp;
 export declare const mapSharedGithubSourceBodyPathMax = 1000;
+export declare const mapSharedGithubSourceBodyPathsItemMax = 1000;
+export declare const mapSharedGithubSourceBodyPathsMax = 10;
 export declare const MapSharedGithubSourceBody: zod.ZodObject<{
     expectedVersion: zod.ZodInt;
     repository: zod.ZodString;
     commit: zod.ZodString;
-    path: zod.ZodString;
+    path: zod.ZodOptional<zod.ZodString>;
+    paths: zod.ZodOptional<zod.ZodArray<zod.ZodString>>;
 }, zod.z.core.$strip>;
 export declare const MapSharedGithubSourceResponse: zod.ZodUnknown;
+export declare const UploadSharedSourceParams: zod.ZodObject<{
+    id: zod.ZodUUID;
+}, zod.z.core.$strip>;
+export declare const uploadSharedSourceBodyFileNameMax = 180;
+export declare const uploadSharedSourceBodyFileBase64Min = 4;
+export declare const uploadSharedSourceBodyFileBase64Max = 341336;
+export declare const UploadSharedSourceBody: zod.ZodObject<{
+    expectedVersion: zod.ZodInt;
+    fileName: zod.ZodString;
+    fileBase64: zod.ZodString;
+}, zod.z.core.$strip>;
+export declare const UploadSharedSourceResponse: zod.ZodUnknown;
 export declare const readSharedSourcePathIndexMin = 0;
 export declare const readSharedSourcePathIndexMax = 9;
 export declare const ReadSharedSourceParams: zod.ZodObject<{
     id: zod.ZodUUID;
     index: zod.z.ZodCoercedNumber<unknown>;
+}, zod.z.core.$strip>;
+export declare const ReadSharedSourceQueryParams: zod.ZodObject<{
+    version: zod.ZodOptional<zod.z.ZodCoercedNumber<unknown>>;
 }, zod.z.core.$strip>;
 export declare const ReadSharedSourceResponse: zod.ZodUnknown;
 export declare const EvaluateSharedSourceParams: zod.ZodObject<{
@@ -725,6 +1164,12 @@ export declare const ListReportTemplatesResponse: zod.ZodObject<{
     }, zod.z.core.$strip>>;
 }, zod.z.core.$strip>;
 export declare const WordTemplateReferenceResponse: zod.ZodUnknown;
+export declare const DownloadWordTemplateSampleQueryParams: zod.ZodObject<{
+    layout: zod.ZodOptional<zod.ZodEnum<{
+        generic: "generic";
+        yash: "yash";
+    }>>;
+}, zod.z.core.$strip>;
 export declare const DownloadWordTemplateSampleResponse: zod.ZodUnknown;
 export declare const startWordTemplateUploadBodyNameMax = 100;
 export declare const startWordTemplateUploadBodyFilenameRegExp: RegExp;
@@ -827,10 +1272,10 @@ export declare const ListKnowledgeResponse: zod.ZodObject<{
         filename: zod.ZodString;
         version: zod.ZodInt;
         status: zod.ZodEnum<{
+            failed: "failed";
+            ready: "ready";
             "awaiting-upload": "awaiting-upload";
             processing: "processing";
-            ready: "ready";
-            failed: "failed";
         }>;
         error: zod.ZodNullable<zod.ZodString>;
         createdAt: zod.ZodString;
@@ -871,10 +1316,10 @@ export declare const GetKnowledgeDocumentResponse: zod.ZodIntersection<zod.ZodOb
     filename: zod.ZodString;
     version: zod.ZodInt;
     status: zod.ZodEnum<{
+        failed: "failed";
+        ready: "ready";
         "awaiting-upload": "awaiting-upload";
         processing: "processing";
-        ready: "ready";
-        failed: "failed";
     }>;
     error: zod.ZodNullable<zod.ZodString>;
     createdAt: zod.ZodString;
@@ -904,10 +1349,10 @@ export declare const ProcessKnowledgeUploadResponse: zod.ZodObject<{
     filename: zod.ZodString;
     version: zod.ZodInt;
     status: zod.ZodEnum<{
+        failed: "failed";
+        ready: "ready";
         "awaiting-upload": "awaiting-upload";
         processing: "processing";
-        ready: "ready";
-        failed: "failed";
     }>;
     error: zod.ZodNullable<zod.ZodString>;
     createdAt: zod.ZodString;

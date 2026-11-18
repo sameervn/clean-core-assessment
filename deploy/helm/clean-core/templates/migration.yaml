@@ -34,6 +34,8 @@ spec:
             - { name: NODE_ENV, value: production }
             - { name: CC_STATIC_DIR, value: /app/public }
             - { name: CC_DB_POOL_MAX, value: "3" }
+            - { name: CC_PROJECT_OWNER_ROLE, value: {{ .Values.migration.projectOwnerRole | quote }} }
+            - { name: CC_PROJECT_RUNTIME_ROLE, value: {{ .Values.migration.projectRuntimeRole | quote }} }
             {{- if .Values.migration.runtimeEnvFile.enabled }}
             - { name: CC_RUNTIME_ENV_FILE, value: /etc/clean-core/.env }
             {{- else }}

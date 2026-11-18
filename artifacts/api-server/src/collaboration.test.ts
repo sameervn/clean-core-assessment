@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { complexitySize, contentSchema, transition } from "./collaboration/contract";
 import { usageState } from "./collaboration/usage";
-import { analyzeSource, files, githubConfig, githubJson } from "./collaboration/github";
+import { analyzeSource, files, githubJson } from "./collaboration/github";
 import { buildCleanCoreAssessment } from "./clean-core-assessment";
 
 test("all six complexity sizes and unknowns preserve compliance independence", () => {
@@ -44,8 +44,7 @@ test("source analysis supplies line evidence and never infers clean status", () 
   assert.throws(() => contentSchema.parse({ approver: "forged" }));
 });
 test("GitHub configuration, revocation and bounded listing fail explicitly", async () => {
-  assert.equal(githubConfig({ CC_GITHUB_TOKEN: "test" }), null);
-  const config = githubConfig({ CC_GITHUB_TOKEN: "test", CC_GITHUB_REPOSITORIES: "owner/repo" })!;
+  const config = { token: "synthetic-test-token", repositories: ["owner/repo"] };
   await assert.rejects(files("attacker/repo", "main", config), /allowlist/);
   await assert.rejects(githubJson("/test", config, async () => new Response("", { status: 401 })), /denied or revoked/);
   await assert.rejects(githubJson("/test", config, async () => new Response("invalid")), /malformed/);

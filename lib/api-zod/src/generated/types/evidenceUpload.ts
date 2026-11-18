@@ -7,6 +7,6 @@
  */
 
 export interface EvidenceUpload {
-  file: Blob;
+  file: Blob | File;
   type: string;
 }

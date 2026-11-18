@@ -11,7 +11,7 @@ export interface CompanyTemplateUpload {
        * @maxLength 120
        */
     name: string;
-    file: Blob;
+    file: Blob | File;
     replaceId?: string;
     /** @minimum 1 */
     expectedVersion?: number;

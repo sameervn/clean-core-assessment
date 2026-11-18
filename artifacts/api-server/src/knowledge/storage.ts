@@ -3,6 +3,7 @@ import { objectStorageClient } from "../lib/objectStorage";
 import { AiError } from "../assessment-ai";
 import { portableStorage } from "./portable-storage";
 import { portableUploadUrl } from "./upload-capability";
+import { assertProjectObject, privateProjectRoot } from "../projects/storage-scope";
 
 // Replit uses the unchanged sidecar client; client-hosted GCS uses workload identity/ADC.
 const clientStorage = new Storage();
@@ -16,7 +17,7 @@ function file(path: string) {
 }
 export function objectPath(id: string) {
   if (!storageConfigured()) throw new AiError(503, "Private durable document storage is not configured. See docs/knowledge-base.md.");
-  return `${process.env.PRIVATE_OBJECT_DIR!.replace(/\/$/, "")}/knowledge/${id}`;
+  return `${privateProjectRoot()}/knowledge/${id}`;
 }
 export async function uploadUrl(path: string) {
   // No browser storage-write capability: all backends must pass the bounded
@@ -25,6 +26,7 @@ export async function uploadUrl(path: string) {
   return portableUploadUrl(path);
 }
 export async function readObject(path: string) {
+  assertProjectObject(path);
   const backend = portableStorage();
   if (backend) return backend.read(path);
   const obj = file(path);
@@ -45,6 +47,7 @@ export async function readObject(path: string) {
   return Buffer.concat(buffers);
 }
 export async function saveSealed(path: string, bytes: Buffer) {
+  assertProjectObject(path);
   if (!Buffer.isBuffer(bytes)) throw new TypeError("Document must be a Buffer");
   if (!bytes.length || bytes.length > MAX_FILE_BYTES) throw new Error("Document must contain 1 byte to 8 MB");
   const backend = portableStorage();
@@ -52,6 +55,7 @@ export async function saveSealed(path: string, bytes: Buffer) {
   await file(path).save(bytes, { resumable: false, contentType: "application/octet-stream", preconditionOpts: { ifGenerationMatch: 0 } });
 }
 export async function removeObject(path: string) {
+  assertProjectObject(path);
   const backend = portableStorage();
   if (backend) return backend.remove(path);
   await file(path).delete({ ignoreNotFound: true });
@@ -88,6 +92,7 @@ export async function listCleanupObjects(cursor?: string) {
   };
 }
 export async function removeCleanupObject(object: CleanupObject) {
+  assertProjectObject(object.path);
   if (!object.generation) throw new Error("Missing storage version");
   const backend = portableStorage();
   if (backend) return backend.remove(object.path, object.generation);

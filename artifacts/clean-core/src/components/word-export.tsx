@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
-  MAX_RENDER_ENTITIES, SAMPLE_TEMPLATE_ID, buildEntityModels, resolveSelection, downloadFrom, fetchTemplates, isAbort, saveBlob,
+  MAX_RENDER_ENTITIES, SAMPLE_TEMPLATE_ID, BUILTIN_TEMPLATE_ID, BUILTIN_TEMPLATE_NAME, buildEntityModels, resolveSelection, downloadFrom, fetchTemplates, isAbort, saveBlob,
   type EntitySelection, type TemplateList,
 } from "@/lib/word-reports";
 
@@ -52,10 +52,10 @@ function WordExportDialog({ ctx, selection, scopeLabel, onClose }: { ctx: any; s
     fetchTemplates(ac.signal).then(data => {
       if (!mounted.current) return;
       setList(data);
-      // Only a valid, previewed active template is preselected; never fall back silently to the sample.
+      // Explicit company/personal defaults take precedence over the supplied YASH layout.
       const active = data.templates.find(t => t.id === data.activeId);
-      // Keep an explicit, still-valid choice across retries; otherwise only the real default. Never the sample implicitly.
-      setTemplateId(prev => prev === SAMPLE_TEMPLATE_ID || data.templates.some(t => t.id === prev) ? prev : active ? active.id : "");
+      setTemplateId(prev => prev === SAMPLE_TEMPLATE_ID || prev === BUILTIN_TEMPLATE_ID || data.templates.some(t => t.id === prev)
+        ? prev : active ? active.id : data.activeId === BUILTIN_TEMPLATE_ID ? BUILTIN_TEMPLATE_ID : "");
     }).catch(e => { if (!isAbort(e) && mounted.current) setListError(e?.status === 403 ? "Your account is not permitted to export Word reports." : e?.message || "Could not load templates."); });
     return ac;
   };
@@ -71,13 +71,13 @@ function WordExportDialog({ ctx, selection, scopeLabel, onClose }: { ctx: any; s
   const previewSample = async () => {
     const ac = new AbortController(); abortRef.current?.abort(); abortRef.current = ac; setPreviewing(true); setError(null);
     try {
-      const { blob, filename } = await downloadFrom("/api/report-templates/preview", { method: "POST", json: { templateId: SAMPLE_TEMPLATE_ID } }, "sample-template-preview.docx", { signal: ac.signal, fallbackError: "Preview failed" });
+      const { blob, filename } = await downloadFrom("/api/report-templates/preview", { method: "POST", json: { templateId } }, "template-preview.docx", { signal: ac.signal, fallbackError: "Preview failed" });
       if (mounted.current && !ac.signal.aborted) saveBlob(blob, filename);
     } catch (e: any) {
       if (mounted.current && !isAbort(e)) setError(e?.status === 403 ? "The server denied the preview. Your permissions may have changed." : e?.message || "Preview failed.");
     } finally { if (abortRef.current === ac) abortRef.current = null; if (mounted.current) setPreviewing(false); }
   };
-  const selectedIsValid = templateId === SAMPLE_TEMPLATE_ID || !!list?.templates.some(t => t.id === templateId);
+  const selectedIsValid = templateId === SAMPLE_TEMPLATE_ID || templateId === BUILTIN_TEMPLATE_ID || !!list?.templates.some(t => t.id === templateId);
 
   const run = async () => {
     if (!selectedIsValid || tooMany || count === 0 || missing.length) return;
@@ -130,13 +130,14 @@ function WordExportDialog({ ctx, selection, scopeLabel, onClose }: { ctx: any; s
                   <SelectTrigger data-testid="select-template"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                   <SelectContent>
                     {list.templates.map(t => <SelectItem key={t.id} value={t.id}>{t.company ? "Company: " : ""}{t.name} · v{t.version}{t.active ? " (default)" : ""}</SelectItem>)}
+                    <SelectItem value={BUILTIN_TEMPLATE_ID}>{BUILTIN_TEMPLATE_NAME} · v1{list.activeId === BUILTIN_TEMPLATE_ID ? " (default)" : ""}</SelectItem>
                     <SelectItem value={SAMPLE_TEMPLATE_ID}>Built-in sample template (not your organisation's)</SelectItem>
                   </SelectContent>
                 </Select>
                 {!list.activeId && <p className="text-xs text-amber-700" data-testid="status-no-default-template">No default template is configured{list.templates.length ? "" : " or uploaded"}. Choose one explicitly — the sample is never used automatically.</p>}
-                {templateId === SAMPLE_TEMPLATE_ID && (
+                {(templateId === SAMPLE_TEMPLATE_ID || templateId === BUILTIN_TEMPLATE_ID) && (
                   <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
-                    <span>The sample template is generic. Download a populated preview to see its layout.</span>
+                    <span>{templateId === BUILTIN_TEMPLATE_ID ? "Supplied YASH layout for all projects unless overridden. Missing functional details read Not provided. Preview uses fictional data." : "The sample template is generic. Download a populated preview to see its layout."}</span>
                     <Button size="sm" variant="outline" disabled={busy || previewing} onClick={() => void previewSample()} data-testid="button-preview-sample">
                       {previewing ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Eye className="mr-1 h-3.5 w-3.5" />}Preview
                     </Button>

@@ -13,9 +13,7 @@ export type ListReviewNotificationsParams = {
      * @pattern ^[1-9][0-9]{0,18}$
      */
     cursor?: string;
-    /**
-     * Apply the same filter when following nextCursor.
-     */
+    /** Apply the same filter when following nextCursor. */
     filter?: ListReviewNotificationsFilter;
 };
 //# sourceMappingURL=listReviewNotificationsParams.d.ts.map

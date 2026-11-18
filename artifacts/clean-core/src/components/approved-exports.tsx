@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { downloadFrom, saveBlob } from "@/lib/word-reports";
+import { downloadFrom, saveBlob, BUILTIN_TEMPLATE_ID, BUILTIN_TEMPLATE_NAME } from "@/lib/word-reports";
 import { BASE, MAX_APPROVAL_BATCH, MAX_COMPANY_TEMPLATE_BYTES, listApprovals, listCompanyTemplates, setCompanyDefault, uploadCompanyTemplate } from "@/lib/shared-assessments";
 
 function Err({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -115,7 +115,12 @@ export function CompanyTemplatesSection() {
   };
   const preview = async (id: string, expectedVersion: number) => {
     setBusy(`p-${id}`);
-    try { const { blob, filename } = await downloadFrom(`${BASE}/company-templates/${encodeURIComponent(id)}/preview`, { method: "POST", json: { expectedVersion } }, "company-template-preview.docx", { fallbackError: "Preview failed" }); saveBlob(blob, filename); refresh(); }
+    try {
+      const builtin = id === BUILTIN_TEMPLATE_ID;
+      const { blob, filename } = await downloadFrom(builtin ? "/api/report-templates/preview" : `${BASE}/company-templates/${encodeURIComponent(id)}/preview`,
+        { method: "POST", json: builtin ? { templateId: id, expectedVersion } : { expectedVersion } }, "company-template-preview.docx", { fallbackError: "Preview failed" });
+      saveBlob(blob, filename); refresh();
+    }
     catch (e: any) { toast({ title: "Preview failed", description: e?.message, variant: "destructive" }); }
     finally { setBusy(null); }
   };
@@ -129,7 +134,7 @@ export function CompanyTemplatesSection() {
     <section className="rounded-lg border bg-card" data-testid="section-company-templates">
       <header className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
         <Building2 className="h-5 w-5 text-primary" />
-        <div className="flex-1"><h3 className="font-semibold">Company Word templates</h3><p className="text-xs text-muted-foreground">Organisation-wide layouts. Only an Admin preview makes a template selectable. The company default is preselected for Word downloads; your private templates stay under Word report templates.</p></div>
+        <div className="flex-1"><h3 className="font-semibold">Company Word templates</h3><p className="text-xs text-muted-foreground">Project-scoped company layouts override the supplied YASH default. Only an Admin preview makes an uploaded company layout selectable. Private templates stay under Word report templates.</p></div>
       </header>
       {isAdmin && (
         <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2">
@@ -141,10 +146,14 @@ export function CompanyTemplatesSection() {
           </Button>
         </div>
       )}
+      <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-3 text-sm" data-testid="company-builtin-template">
+        <div className="min-w-0 flex-1"><p className="font-medium">{BUILTIN_TEMPLATE_NAME} · v1</p><p className="text-xs text-muted-foreground">Default for all projects without a custom default, including new approvals. Existing approved reports retain their saved layout.</p></div>
+        <Button size="sm" variant="outline" disabled={!!busy || !can("export")} onClick={() => void preview(BUILTIN_TEMPLATE_ID, 1)} data-testid="button-company-preview-yash"><Eye className="mr-1 h-3.5 w-3.5" />Preview</Button>
+      </div>
       {q.isLoading && <div className="p-4"><Skeleton className="h-8 w-full" /></div>}
       {q.error && <div className="p-4"><Err message={(q.error as Error).message} onRetry={() => void q.refetch()} /></div>}
       {q.data && !q.data.configured && <p className="p-4 text-sm text-muted-foreground">Company template storage is not configured on this server.</p>}
-      {q.data?.configured && q.data.templates.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground" data-testid="empty-company-templates">No company templates yet.{isAdmin ? " Upload one above." : ""}</p>}
+      {q.data?.configured && q.data.templates.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground" data-testid="empty-company-templates">No custom company templates; the YASH default applies.{isAdmin ? " Upload a different layout above to override it." : ""}</p>}
       {q.data?.templates.map(t => (
         <div key={t.id} className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm last:border-0" data-testid={`row-company-template-${t.id}`}>
           <span className="min-w-0 flex-1 truncate font-medium">{t.name} <span className="font-mono text-[10px] text-muted-foreground">v{t.version}</span></span>

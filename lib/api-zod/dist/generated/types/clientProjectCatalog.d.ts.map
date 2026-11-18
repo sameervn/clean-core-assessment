@@ -1,0 +1,1 @@
+{"version":3,"file":"clientProjectCatalog.d.ts","sourceRoot":"","sources":["../../../src/generated/types/clientProjectCatalog.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,gBAAgB,EAAE,MAAM,oBAAoB,CAAC;AAC3D,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,iBAAiB,CAAC;AAErD,MAAM,WAAW,oBAAoB;IACnC,OAAO,EAAE,gBAAgB,EAAE,CAAC;IAC5B,QAAQ,EAAE,aAAa,EAAE,CAAC;CAC3B"}

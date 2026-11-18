@@ -15,7 +15,7 @@ import { YashLogo } from "@/components/yash-logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import {
-  deleteTemplate, downloadFrom, fetchReference, fetchTemplates, isAbort, patchTemplate, saveBlob, uploadTemplate,
+  deleteTemplate, downloadFrom, fetchReference, fetchTemplates, isAbort, patchTemplate, saveBlob, uploadTemplate, BUILTIN_TEMPLATE_ID, BUILTIN_TEMPLATE_NAME,
   type ReportTemplate,
 } from "@/lib/word-reports";
 
@@ -111,7 +111,7 @@ export default function ReportTemplatesPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold text-[#081d33]">Templates</h2>
-              <p className="text-sm text-slate-600">Upload .docx layouts. A template must be previewed before it can become the default.</p>
+              <p className="text-sm text-slate-600">The supplied YASH layout is the default across projects unless a company or personal default overrides it. Uploaded layouts must be previewed before activation.</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={!canExport || busy === "sample"} onClick={() => void download("sample", "/api/report-templates/sample", undefined, "clean-core-sample-template.docx")} data-testid="button-download-sample">
@@ -166,6 +166,14 @@ export default function ReportTemplatesPage() {
         </section>
 
         <aside className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 text-sm lg:sticky lg:top-6 lg:self-start" data-testid="panel-template-reference">
+          <div className="space-y-2 rounded-md border border-[#00467f]/20 bg-[#00467f]/5 p-3" data-testid="builtin-yash-template">
+            <p className="font-semibold">{BUILTIN_TEMPLATE_NAME}</p>
+            <p className="text-xs text-slate-600">Built-in v1 · objects and interfaces · 20 sections. Sample-specific content was removed; uncollected functional details read Not provided. Your uploaded templates remain editable separately.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled={!canExport || !!busy} onClick={() => void download("yash-preview", "/api/report-templates/preview", { templateId: BUILTIN_TEMPLATE_ID }, "yash-layout-preview.docx")} data-testid="button-preview-yash"><Eye className="mr-1 h-3.5 w-3.5" />Preview</Button>
+              <Button size="sm" variant="outline" disabled={!canExport || !!busy} onClick={() => void download("yash-blank", "/api/report-templates/sample?layout=yash", undefined, "yash-clean-core-template.docx")} data-testid="button-download-yash"><Download className="mr-1 h-3.5 w-3.5" />Download layout</Button>
+            </div>
+          </div>
           <h3 className="flex items-center gap-2 font-semibold text-[#081d33]"><BookOpen className="h-4 w-4" />Placeholder reference</h3>
           {reference.isLoading ? <Skeleton className="h-48 w-full" /> : reference.isError ? (
             <p className="text-destructive">{(reference.error as Error).message} <button className="underline" onClick={() => void reference.refetch()} data-testid="button-retry-reference">Retry</button></p>

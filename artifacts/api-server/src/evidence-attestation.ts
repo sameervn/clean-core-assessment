@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { projectDatabaseScope } from "@workspace/db";
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -17,7 +18,9 @@ function canonicalize(value: unknown): unknown {
 function digest(value: unknown, canonical: boolean): Buffer {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error("Evidence attestation is unavailable because SESSION_SECRET is not configured");
-  const serialized = JSON.stringify(canonical ? canonicalize(value) : value);
+  const scope = projectDatabaseScope();
+  const scopedValue = scope && !scope.legacy ? { projectId: scope.projectId, value } : value;
+  const serialized = JSON.stringify(canonical ? canonicalize(scopedValue) : scopedValue);
   return Buffer.from(createHmac("sha256", secret).update(serialized).digest("hex"), "hex");
 }
 

@@ -7,8 +7,6 @@
  */
 
 export type ListKnowledgeParams = {
-/**
- * @maxLength 200
- */
-q?: string;
+  /** @maxLength 200 */
+  q?: string;
 };

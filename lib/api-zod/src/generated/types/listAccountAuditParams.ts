@@ -8,18 +8,14 @@
 import type { AccountAuditAction } from './accountAuditAction';
 
 export type ListAccountAuditParams = {
-/**
- * @minimum 1
- * @maximum 100000
- */
-page?: number;
-action?: AccountAuditAction;
-/**
- * Inclusive UTC date
- */
-from?: Date;
-/**
- * Inclusive UTC date
- */
-to?: Date;
+  /**
+   * @minimum 1
+   * @maximum 100000
+   */
+  page?: number;
+  action?: AccountAuditAction;
+  /** Inclusive UTC date */
+  from?: Date;
+  /** Inclusive UTC date */
+  to?: Date;
 };

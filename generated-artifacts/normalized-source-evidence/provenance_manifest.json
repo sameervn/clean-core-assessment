@@ -1,0 +1,149 @@
+{
+  "description": "Source-derived evidence only. No usage, ATC, release-contract or runtime verification was fabricated.",
+  "evidenceFiles": [
+    {
+      "fileName": "01_object_metadata.csv",
+      "evidenceType": "object-metadata",
+      "rows": 6
+    },
+    {
+      "fileName": "02_enhancements.csv",
+      "evidenceType": "enhancements",
+      "rows": 6
+    },
+    {
+      "fileName": "03_custom_code_observations.csv",
+      "evidenceType": "custom-code",
+      "rows": 8
+    },
+    {
+      "fileName": "04_interface_candidate.csv",
+      "evidenceType": "interfaces",
+      "rows": 1
+    }
+  ],
+  "originals": [
+    {
+      "fileName": "BADI_SD_ROUTE.txt",
+      "workspaceFile": "BADI_SD_ROUTE_1794969646645.txt",
+      "sha256": "5dc05f5cfd453472427dcdfc56e6fd27b4370eea90ae6e2ac0c06e245b20b619",
+      "encoding": "UTF-8"
+    },
+    {
+      "fileName": "Core_Clean_ENH_RTR.txt",
+      "workspaceFile": "Core_Clean_ENH_RTR_1794969646645.txt",
+      "sha256": "44b3831508dc357ef78d6be77f69f559353b7a765f837ab7f88e56c68fdb882b",
+      "encoding": "UTF-8"
+    },
+    {
+      "fileName": "PO_Agent_Determination.txt",
+      "workspaceFile": "PO_Agent_Determination_1794969646645.txt",
+      "sha256": "737ef1e51107c965b3d609f1220f3262acfbcb04a0b38a2d80efd267d6b54b95",
+      "encoding": "Windows-1252 / ISO-8859-1 compatible for observed bytes"
+    },
+    {
+      "fileName": "ZOTC_EI_SO_DELETION_IDOC.txt",
+      "workspaceFile": "ZOTC_EI_SO_DELETION_IDOC_1794969646645.txt",
+      "sha256": "471a8df965db4ac5351002e0f33bae64aa739131819cb00d1af6ca3cd3dca5d1",
+      "encoding": "UTF-8"
+    }
+  ],
+  "normalizedSources": [
+    {
+      "objectName": "ZIM_SCM_ROUTE",
+      "output": "sources/ZIM_SCM_ROUTE.abap",
+      "sha256": "b527e5b75c45c3c4eda31be6019921536236cde491170d1213bf4fad1a6e9c9b",
+      "original": "BADI_SD_ROUTE.txt",
+      "originalSha256": "5dc05f5cfd453472427dcdfc56e6fd27b4370eea90ae6e2ac0c06e245b20b619",
+      "originalEncoding": "UTF-8",
+      "originalStartLine": 1,
+      "originalEndLine": 77,
+      "normalizedLineFormula": "original line - 1 + 1",
+      "transformations": [
+        "UTF-8 and LF line endings",
+        "Prose headings converted to ABAP full-line comments; header NBSP characters changed to spaces",
+        "No business-logic corrections; incomplete snippets remain incomplete"
+      ]
+    },
+    {
+      "objectName": "ZENH_RTRE040_IMG_CONTORL_DP",
+      "output": "sources/ZENH_RTRE040_IMG_CONTORL_DP.abap",
+      "sha256": "3c7a6d5ff93517d9682fac4d91f68b1b6bee48babe5760b10cf3b6f834493075",
+      "original": "Core_Clean_ENH_RTR.txt",
+      "originalSha256": "44b3831508dc357ef78d6be77f69f559353b7a765f837ab7f88e56c68fdb882b",
+      "originalEncoding": "UTF-8",
+      "originalStartLine": 1,
+      "originalEndLine": 27,
+      "normalizedLineFormula": "original line - 1 + 1",
+      "transformations": [
+        "UTF-8 and LF line endings",
+        "Prose headings converted to ABAP full-line comments; header NBSP characters changed to spaces",
+        "No business-logic corrections; incomplete snippets remain incomplete"
+      ]
+    },
+    {
+      "objectName": "ZENH_RTRE040_IMG_CNTRL_VIM_ATT",
+      "output": "sources/ZENH_RTRE040_IMG_CNTRL_VIM_ATT.abap",
+      "sha256": "27d51219fb8e79d759961624206cd8d0c02b4fcb8d382be4f150ce7d6ac76a72",
+      "original": "Core_Clean_ENH_RTR.txt",
+      "originalSha256": "44b3831508dc357ef78d6be77f69f559353b7a765f837ab7f88e56c68fdb882b",
+      "originalEncoding": "UTF-8",
+      "originalStartLine": 28,
+      "originalEndLine": 45,
+      "normalizedLineFormula": "original line - 28 + 1",
+      "transformations": [
+        "UTF-8 and LF line endings",
+        "Prose headings converted to ABAP full-line comments; header NBSP characters changed to spaces",
+        "No business-logic corrections; incomplete snippets remain incomplete"
+      ]
+    },
+    {
+      "objectName": "ZENH_RTRE040_IMG_CONTORL_VA",
+      "output": "sources/ZENH_RTRE040_IMG_CONTORL_VA.abap",
+      "sha256": "6527d9b9f125838ba94f9e5a642d7acd3ed646a3b0b31ce9aa1a3e3d9f85a694",
+      "original": "Core_Clean_ENH_RTR.txt",
+      "originalSha256": "44b3831508dc357ef78d6be77f69f559353b7a765f837ab7f88e56c68fdb882b",
+      "originalEncoding": "UTF-8",
+      "originalStartLine": 46,
+      "originalEndLine": 63,
+      "normalizedLineFormula": "original line - 46 + 1",
+      "transformations": [
+        "UTF-8 and LF line endings",
+        "Prose headings converted to ABAP full-line comments; header NBSP characters changed to spaces",
+        "No business-logic corrections; incomplete snippets remain incomplete"
+      ]
+    },
+    {
+      "objectName": "ZXM06U51",
+      "output": "sources/ZXM06U51.abap",
+      "sha256": "621563df335709c46425f4d08ae0dcbbb777f7701de1945538d642bcb18edc8e",
+      "original": "PO_Agent_Determination.txt",
+      "originalSha256": "737ef1e51107c965b3d609f1220f3262acfbcb04a0b38a2d80efd267d6b54b95",
+      "originalEncoding": "Windows-1252 / ISO-8859-1 compatible for observed bytes",
+      "originalStartLine": 1,
+      "originalEndLine": 41,
+      "normalizedLineFormula": "original line - 1 + 1",
+      "transformations": [
+        "UTF-8 and LF line endings",
+        "Prose headings converted to ABAP full-line comments; header NBSP characters changed to spaces",
+        "No business-logic corrections; incomplete snippets remain incomplete"
+      ]
+    },
+    {
+      "objectName": "ZOTC_EI_SO_DELETION_IDOC",
+      "output": "sources/ZOTC_EI_SO_DELETION_IDOC.abap",
+      "sha256": "d1fc6dd1742952b7939946a92afa138f4cb9385194fbca56e3bc325cfe155ae4",
+      "original": "ZOTC_EI_SO_DELETION_IDOC.txt",
+      "originalSha256": "471a8df965db4ac5351002e0f33bae64aa739131819cb00d1af6ca3cd3dca5d1",
+      "originalEncoding": "UTF-8",
+      "originalStartLine": 1,
+      "originalEndLine": 127,
+      "normalizedLineFormula": "original line - 1 + 1",
+      "transformations": [
+        "UTF-8 and LF line endings",
+        "Prose headings converted to ABAP full-line comments; header NBSP characters changed to spaces",
+        "No business-logic corrections; incomplete snippets remain incomplete"
+      ]
+    }
+  ]
+}

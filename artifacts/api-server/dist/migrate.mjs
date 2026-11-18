@@ -4497,9 +4497,9 @@ var require_pg_pool = __commonJS({
           clearTimeout(removed.timeoutId);
         }
         this._clients = this._clients.filter((c) => c !== client2);
-        const context = this;
+        const context2 = this;
         client2.end(() => {
-          context.emit("remove", client2);
+          context2.emit("remove", client2);
           if (typeof callback === "function") {
             callback();
           }
@@ -32556,6 +32556,75 @@ function databaseConfig(env, readCA = (path) => readFileSync(path, "utf8")) {
   return config2;
 }
 
+// ../../lib/db/src/project-scope.ts
+import { AsyncLocalStorage } from "node:async_hooks";
+var context = new AsyncLocalStorage();
+function projectScopedPool(raw) {
+  async function connect() {
+    const scope = context.getStore();
+    if (!scope) return raw.connect();
+    const client2 = await raw.connect();
+    try {
+      await client2.query("SELECT set_config('search_path',$1,false)", [scope.schema]);
+    } catch (error62) {
+      client2.release(error62);
+      throw error62;
+    }
+    let released = false;
+    return new Proxy(client2, {
+      get(target, property) {
+        if (property === "release") return (error62) => {
+          if (released) throw new Error("Project connection already released");
+          released = true;
+          if (error62) {
+            target.release(error62);
+            return;
+          }
+          void target.query("RESET search_path").then(() => target.release(), (failure2) => target.release(failure2));
+        };
+        if (property === "query") return (...args) => {
+          if (released) return Promise.reject(new Error("Project connection already released"));
+          return target.query(...args);
+        };
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+    });
+  }
+  return new Proxy(raw, {
+    get(target, property) {
+      if (property === "connect") return (...args) => {
+        if (!context.getStore()) return target.connect(...args);
+        const callback = args[0];
+        if (typeof callback === "function") {
+          void connect().then((c) => callback(null, c, c.release), callback);
+          return;
+        }
+        return connect();
+      };
+      if (property === "query") return (...args) => {
+        if (!context.getStore()) return target.query(...args);
+        const callback = typeof args[args.length - 1] === "function" ? args.pop() : null;
+        const promise2 = (async () => {
+          const client2 = await connect();
+          try {
+            return await client2.query(...args);
+          } finally {
+            client2.release();
+          }
+        })();
+        if (callback) {
+          void promise2.then((result) => callback(null, result), callback);
+          return;
+        }
+        return promise2;
+      };
+      const value = Reflect.get(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
+}
+
 // ../../lib/db/src/index.ts
 var { Pool: Pool3 } = esm_default;
 if (!process.env.DATABASE_URL) {
@@ -32563,7 +32632,8 @@ if (!process.env.DATABASE_URL) {
     "DATABASE_URL must be set. Did you forget to provision a database?"
   );
 }
-var pool = new Pool3(databaseConfig(process.env));
+var systemPool = new Pool3(databaseConfig(process.env));
+var pool = projectScopedPool(systemPool);
 var db = drizzle(pool, { schema: schema_exports });
 
 // src/knowledge/schema.ts
@@ -32599,7 +32669,7 @@ async function initializeKnowledge(database = pool) {
 async function initializeReports(database = pool) {
   await database.query(`
     CREATE TABLE IF NOT EXISTS cc_report_templates (
-      id uuid PRIMARY KEY, owner_id text NOT NULL REFERENCES cc_accounts(id) ON DELETE CASCADE,
+      id uuid PRIMARY KEY, owner_id text NOT NULL REFERENCES public.cc_accounts(id) ON DELETE CASCADE,
       name text NOT NULL, version integer NOT NULL DEFAULT 1, status text NOT NULL,
       object_path text NOT NULL, replace_id uuid, expected_version integer,
       previewed boolean NOT NULL DEFAULT false, active boolean NOT NULL DEFAULT false,
@@ -32617,14 +32687,14 @@ async function initializeReports(database = pool) {
 async function initializeCollaboration(database = pool) {
   await database.query(`
     CREATE TABLE IF NOT EXISTS cc_shared_assessments (
-      id uuid PRIMARY KEY, owner_id text NOT NULL REFERENCES cc_accounts(id),
+      id uuid PRIMARY KEY, owner_id text NOT NULL REFERENCES public.cc_accounts(id),
       import_key text NOT NULL, name text NOT NULL, system text NOT NULL,
       target_release text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE(owner_id, import_key)
     );
     CREATE TABLE IF NOT EXISTS cc_assessment_members (
       assessment_id uuid NOT NULL REFERENCES cc_shared_assessments(id),
-      user_id text NOT NULL REFERENCES cc_accounts(id),
+      user_id text NOT NULL REFERENCES public.cc_accounts(id),
       access text NOT NULL CHECK(access IN ('edit','review','read')),
       PRIMARY KEY(assessment_id,user_id)
     );
@@ -32635,32 +32705,32 @@ async function initializeCollaboration(database = pool) {
       content jsonb NOT NULL, sources jsonb NOT NULL DEFAULT '[]',
       version integer NOT NULL DEFAULT 1,
       state text NOT NULL DEFAULT 'Draft' CHECK(state IN ('Draft','Submitted','Approved','Changes requested')),
-      submitter_id text REFERENCES cc_accounts(id), reviewer_id text REFERENCES cc_accounts(id),
+      submitter_id text REFERENCES public.cc_accounts(id), reviewer_id text REFERENCES public.cc_accounts(id),
       updated_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE(assessment_id,kind,entity_key)
     );
     CREATE TABLE IF NOT EXISTS cc_assessment_revisions (
       entity_id uuid NOT NULL REFERENCES cc_assessment_entities(id),
       version integer NOT NULL, content jsonb NOT NULL, sources jsonb NOT NULL,
-      actor_id text NOT NULL REFERENCES cc_accounts(id),
+      actor_id text NOT NULL REFERENCES public.cc_accounts(id),
       origin text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
       PRIMARY KEY(entity_id,version)
     );
     CREATE TABLE IF NOT EXISTS cc_assessment_events (
       id bigserial PRIMARY KEY, entity_id uuid REFERENCES cc_assessment_entities(id),
       assessment_id uuid NOT NULL REFERENCES cc_shared_assessments(id),
-      actor_id text NOT NULL REFERENCES cc_accounts(id), action text NOT NULL,
+      actor_id text NOT NULL REFERENCES public.cc_accounts(id), action text NOT NULL,
       version integer, comment text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE TABLE IF NOT EXISTS cc_assessment_actions (
       entity_id uuid NOT NULL REFERENCES cc_assessment_entities(id),
-      actor_id text NOT NULL REFERENCES cc_accounts(id), request_id uuid NOT NULL,
+      actor_id text NOT NULL REFERENCES public.cc_accounts(id), request_id uuid NOT NULL,
       request_hash text NOT NULL, result jsonb NOT NULL,
       PRIMARY KEY(entity_id,actor_id,request_id)
     );
     CREATE TABLE IF NOT EXISTS cc_assessment_approvals (
       id uuid PRIMARY KEY, entity_id uuid NOT NULL REFERENCES cc_assessment_entities(id),
-      version integer NOT NULL, approver_id text NOT NULL REFERENCES cc_accounts(id),
+      version integer NOT NULL, approver_id text NOT NULL REFERENCES public.cc_accounts(id),
       approved_at timestamptz NOT NULL DEFAULT now(), snapshot jsonb NOT NULL,
       template_id uuid, template_version integer, template_path text,
       report_path text,
@@ -32671,31 +32741,45 @@ async function initializeCollaboration(database = pool) {
     CREATE INDEX IF NOT EXISTS cc_assessment_approvals_archive ON cc_assessment_approvals(approved_at DESC,id DESC);
     CREATE INDEX IF NOT EXISTS cc_assessment_entities_parent ON cc_assessment_entities(assessment_id);
     CREATE INDEX IF NOT EXISTS cc_assessment_events_parent ON cc_assessment_events(assessment_id,id);
-    ALTER TABLE cc_assessment_events ADD COLUMN IF NOT EXISTS recipient_id text REFERENCES cc_accounts(id);
+    ALTER TABLE cc_assessment_events ADD COLUMN IF NOT EXISTS recipient_id text REFERENCES public.cc_accounts(id);
     ALTER TABLE cc_assessment_events ADD COLUMN IF NOT EXISTS notification_processed boolean NOT NULL DEFAULT false;
     CREATE INDEX IF NOT EXISTS cc_assessment_events_pending_notifications ON cc_assessment_events(id)
       WHERE recipient_id IS NOT NULL AND NOT notification_processed;
     CREATE TABLE IF NOT EXISTS cc_review_notification_preferences (
-      user_id text PRIMARY KEY REFERENCES cc_accounts(id),
+      user_id text PRIMARY KEY REFERENCES public.cc_accounts(id),
       enabled boolean NOT NULL DEFAULT false,
       enabled_since timestamptz NOT NULL DEFAULT now()
     );
     CREATE TABLE IF NOT EXISTS cc_review_notifications (
       event_id bigint NOT NULL REFERENCES cc_assessment_events(id) ON DELETE CASCADE,
-      user_id text NOT NULL REFERENCES cc_accounts(id) ON DELETE CASCADE,
+      user_id text NOT NULL REFERENCES public.cc_accounts(id) ON DELETE CASCADE,
       read_at timestamptz,
       PRIMARY KEY(event_id,user_id)
     );
     CREATE INDEX IF NOT EXISTS cc_review_notifications_user ON cc_review_notifications(user_id,event_id DESC);
     CREATE INDEX IF NOT EXISTS cc_review_notifications_retention ON cc_review_notifications(read_at,event_id,user_id)
       WHERE read_at IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS cc_github_imports (
+      id uuid PRIMARY KEY, user_id text NOT NULL REFERENCES public.cc_accounts(id) ON DELETE CASCADE,
+      repository text NOT NULL, ref text NOT NULL, folder text NOT NULL, commit text NOT NULL,
+      credential_version uuid NOT NULL, listing jsonb NOT NULL, entries jsonb NOT NULL,
+      status text NOT NULL DEFAULT 'preview', message text NOT NULL DEFAULT '',
+      created_at timestamptz NOT NULL DEFAULT now(), heartbeat_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS cc_github_imports_owner ON cc_github_imports(user_id,created_at DESC);
     CREATE TABLE IF NOT EXISTS cc_github_connections (
-      user_id text PRIMARY KEY REFERENCES cc_accounts(id), connected_at timestamptz NOT NULL DEFAULT now()
+      user_id text PRIMARY KEY REFERENCES public.cc_accounts(id), connected_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS cc_github_credentials (
+      user_id text NOT NULL REFERENCES public.cc_accounts(id) ON DELETE CASCADE,
+      repository text NOT NULL, username text NOT NULL, encrypted_token text NOT NULL,
+      credential_version uuid NOT NULL, connected_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY(user_id,repository)
     );
     CREATE TABLE IF NOT EXISTS cc_company_templates (
       id uuid PRIMARY KEY, name text NOT NULL, version integer NOT NULL,
       previewed boolean NOT NULL DEFAULT false, active boolean NOT NULL DEFAULT false,
-      created_by text NOT NULL REFERENCES cc_accounts(id), created_at timestamptz NOT NULL DEFAULT now()
+      created_by text NOT NULL REFERENCES public.cc_accounts(id), created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE UNIQUE INDEX IF NOT EXISTS cc_company_template_default ON cc_company_templates(active) WHERE active;
     CREATE TABLE IF NOT EXISTS cc_company_template_versions (
@@ -32704,6 +32788,121 @@ async function initializeCollaboration(database = pool) {
       PRIMARY KEY(template_id,version)
     );
   `);
+}
+
+// src/projects/service.ts
+var LEGACY_PROJECT_ID = "00000000-0000-4000-8000-000000000002";
+var LEGACY_CLIENT_ID = "00000000-0000-4000-8000-000000000001";
+var projectSchemaName = (id) => {
+  if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("Invalid internal project ID");
+  return `ccp_${id.replaceAll("-", "")}`;
+};
+async function controlTransaction(fn) {
+  const c = await systemPool.connect();
+  try {
+    await c.query("BEGIN");
+    const result = await fn(c);
+    await c.query("COMMIT");
+    return result;
+  } catch (error62) {
+    await c.query("ROLLBACK");
+    throw error62;
+  } finally {
+    c.release();
+  }
+}
+async function provision(c, id, migrateLegacy = false) {
+  const schema = projectSchemaName(id);
+  const { owner, runtime } = provisioningRoles();
+  if (owner) await c.query(`SET LOCAL ROLE "${owner}"`);
+  await c.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+  if (migrateLegacy) {
+    if (owner) await c.query("RESET ROLE");
+    const tables = (await c.query(`SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public'
+      AND (tablename LIKE 'cc_knowledge%' OR tablename LIKE 'cc_report_%'
+        OR tablename LIKE 'cc_shared_%' OR tablename LIKE 'cc_assessment_%'
+        OR tablename LIKE 'cc_review_%' OR tablename LIKE 'cc_github_%' OR tablename LIKE 'cc_company_%')`)).rows;
+    for (const { tablename } of tables) {
+      if (!/^cc_[a-z_]+$/.test(tablename)) throw new Error("Unexpected legacy table identifier");
+      await c.query(`ALTER TABLE public."${tablename}" SET SCHEMA "${schema}"`);
+      if (owner) await c.query(`ALTER TABLE "${schema}"."${tablename}" OWNER TO "${owner}"`);
+    }
+    if (owner) await c.query(`SET LOCAL ROLE "${owner}"`);
+  }
+  await c.query("SELECT set_config('search_path',$1,true)", [schema]);
+  await c.query(`CREATE OR REPLACE VIEW cc_accounts AS SELECT a.* FROM public.cc_accounts a
+    WHERE EXISTS (SELECT 1 FROM public.cc_project_members pm WHERE pm.project_id='${id}' AND pm.user_id=a.id);
+    CREATE OR REPLACE VIEW cc_account_sessions AS SELECT s.* FROM public.cc_account_sessions s
+    WHERE EXISTS (SELECT 1 FROM public.cc_project_members pm WHERE pm.project_id='${id}' AND pm.user_id=s.user_id)`);
+  await initializeReports(c);
+  await initializeCollaboration(c);
+  await initializeKnowledge(c);
+  if (runtime) {
+    await c.query(`REVOKE ALL ON SCHEMA "${schema}" FROM PUBLIC;
+      GRANT USAGE ON SCHEMA "${schema}" TO "${runtime}";
+      GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA "${schema}" TO "${runtime}";
+      GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA "${schema}" TO "${runtime}"`);
+  }
+  if (owner) await c.query("RESET ROLE");
+  await c.query("SELECT set_config('search_path','public',true)");
+}
+function provisioningRoles() {
+  const role = (key) => {
+    const value = process.env[key];
+    if (value && !/^[a-z_][a-z0-9_]{0,62}$/.test(value)) throw new Error(`Invalid ${key}`);
+    return value;
+  };
+  const owner = role("CC_PROJECT_OWNER_ROLE"), runtime = role("CC_PROJECT_RUNTIME_ROLE");
+  if (!!owner !== !!runtime) throw new Error("Set both project owner and runtime roles");
+  if (owner && owner === runtime) throw new Error("Project owner and runtime roles must differ");
+  return { owner, runtime };
+}
+async function initializeProjects() {
+  await controlTransaction(async (c) => {
+    await c.query("SELECT pg_advisory_xact_lock(614099)");
+    await c.query(`CREATE TABLE IF NOT EXISTS public.cc_clients (
+      id uuid PRIMARY KEY, name text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+      CREATE TABLE IF NOT EXISTS public.cc_projects (
+      id uuid PRIMARY KEY, client_id uuid NOT NULL REFERENCES public.cc_clients(id),
+      name text NOT NULL, schema_name text NOT NULL UNIQUE, legacy boolean NOT NULL DEFAULT false,
+      created_at timestamptz NOT NULL DEFAULT now());
+      CREATE TABLE IF NOT EXISTS public.cc_project_members (
+      project_id uuid NOT NULL REFERENCES public.cc_projects(id), user_id text NOT NULL REFERENCES public.cc_accounts(id),
+      PRIMARY KEY(project_id,user_id));
+      CREATE INDEX IF NOT EXISTS cc_project_members_user ON public.cc_project_members(user_id);
+      CREATE TABLE IF NOT EXISTS public.cc_project_audit (
+      id bigserial PRIMARY KEY, actor_id text REFERENCES public.cc_accounts(id), project_id uuid REFERENCES public.cc_projects(id),
+      action text NOT NULL, target_id text, created_at timestamptz NOT NULL DEFAULT now())`);
+    await c.query(`ALTER TABLE public.cc_projects
+      ADD COLUMN IF NOT EXISTS provisioning_status text NOT NULL DEFAULT 'ready'
+        CHECK (provisioning_status IN ('pending','failed','ready','cancelled')),
+      ADD COLUMN IF NOT EXISTS provisioning_error text,
+      ADD COLUMN IF NOT EXISTS requested_by text REFERENCES public.cc_accounts(id);
+      CREATE INDEX IF NOT EXISTS cc_projects_pending ON public.cc_projects(created_at,id)
+        WHERE provisioning_status='pending'`);
+    const { owner, runtime } = provisioningRoles();
+    if (owner && runtime) {
+      await c.query(`GRANT USAGE ON SCHEMA public TO "${owner}","${runtime}";
+        GRANT SELECT ON public.cc_accounts,public.cc_account_sessions,public.cc_project_members TO "${owner}";
+        GRANT UPDATE(id) ON public.cc_accounts TO "${owner}";
+        GRANT UPDATE(token_hash) ON public.cc_account_sessions TO "${owner}";
+        GRANT REFERENCES ON public.cc_accounts TO "${owner}";
+        GRANT SELECT,INSERT,UPDATE,DELETE ON public.cc_accounts,public.cc_account_sessions,
+          public.cc_account_throttle,public.cc_account_audit,public.cc_clients,public.cc_projects,
+          public.cc_project_members,public.cc_project_audit TO "${runtime}";
+        GRANT USAGE,SELECT ON SEQUENCE public.cc_project_audit_id_seq TO "${runtime}"`);
+    }
+    await c.query("INSERT INTO public.cc_clients(id,name) VALUES($1,'Legacy client \u2014 assign before client use') ON CONFLICT DO NOTHING", [LEGACY_CLIENT_ID]);
+    const inserted = await c.query(`INSERT INTO public.cc_projects(id,client_id,name,schema_name,legacy)
+      VALUES($1,$2,'Legacy workspace',$3,true) ON CONFLICT DO NOTHING RETURNING id`, [LEGACY_PROJECT_ID, LEGACY_CLIENT_ID, projectSchemaName(LEGACY_PROJECT_ID)]);
+    if (inserted.rowCount) {
+      await c.query(`INSERT INTO public.cc_project_members(project_id,user_id)
+        SELECT $1,id FROM public.cc_accounts WHERE role='Admin' AND active ON CONFLICT DO NOTHING`, [LEGACY_PROJECT_ID]);
+    }
+    await provision(c, LEGACY_PROJECT_ID, true);
+    const others = (await c.query("SELECT id FROM public.cc_projects WHERE NOT legacy AND provisioning_status='ready' ORDER BY id")).rows;
+    for (const project of others) await provision(c, project.id);
+  });
 }
 
 // scripts/migrate-client.ts
@@ -32730,10 +32929,8 @@ try {
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
-  await initializeKnowledge(client);
-  await initializeReports(client);
-  await initializeCollaboration(client);
   await client.query("COMMIT");
+  await initializeProjects();
   process.stdout.write("Client schema migration completed\n");
 } catch {
   await client.query("ROLLBACK").catch(() => void 0);

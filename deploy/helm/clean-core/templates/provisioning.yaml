@@ -1,0 +1,63 @@
+{{- if .Values.provisioning.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "cc.name" . }}-provision
+spec:
+  schedule: {{ .Values.provisioning.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: {{ .Values.provisioning.activeDeadlineSeconds }}
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: {{ include "cc.name" . }}
+            {{- with .Values.podLabels }}{{ toYaml . | nindent 12 }}{{ end }}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ .Values.provisioning.serviceAccountName | quote }}
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            {{- toYaml .Values.imagePullSecrets | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: provision
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              command: [node, dist/provision.mjs]
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              env:
+                - { name: NODE_ENV, value: production }
+                - { name: CC_DB_POOL_MAX, value: "3" }
+                - { name: CC_PROJECT_OWNER_ROLE, value: {{ .Values.provisioning.projectOwnerRole | quote }} }
+                - { name: CC_PROJECT_RUNTIME_ROLE, value: {{ .Values.provisioning.projectRuntimeRole | quote }} }
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ required "provisioning.existingSecret required" .Values.provisioning.existingSecret }}
+                      key: {{ .Values.provisioning.databaseSecretKey }}
+                {{- if .Values.databaseCA.configMap }}
+                - { name: CC_DB_CA_FILE, value: /etc/db-ca/ca.pem }
+                {{- end }}
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+                {{- if .Values.databaseCA.configMap }}
+                - { name: db-ca, mountPath: /etc/db-ca, readOnly: true }
+                {{- end }}
+          volumes:
+            - name: tmp
+              emptyDir: { sizeLimit: 64Mi }
+            {{- if .Values.databaseCA.configMap }}
+            - name: db-ca
+              configMap:
+                name: {{ .Values.databaseCA.configMap }}
+                items: [{ key: {{ .Values.databaseCA.key }}, path: ca.pem }]
+            {{- end }}
+{{- end }}

@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Provide exactly one of path or paths. All selected files are attached atomically in one new draft revision.
+ */
 export interface SharedSourceMapping {
   /** @minimum 1 */
   expectedVersion: number;
@@ -17,5 +20,12 @@ export interface SharedSourceMapping {
      * @minLength 1
      * @maxLength 1000
      */
-  path: string;
+  path?: string;
+  /**
+     * @minItems 1
+     * @maxItems 10
+     * @items.minLength 1
+     * @items.maxLength 1000
+     */
+  paths?: string[];
 }

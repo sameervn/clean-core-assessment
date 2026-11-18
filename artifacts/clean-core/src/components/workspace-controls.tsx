@@ -1,3 +1,4 @@
+import { useProject } from "@/lib/project";
 import { useRef } from "react";
 import { AlertTriangle, Check, CloudOff, Download, Loader2, RotateCcw, Upload } from "lucide-react";
 import {
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
-export interface PendingReplace { kind: "demo" | "restore" | "reset" | "unreadable"; onConfirm: () => void }
+export interface PendingReplace { kind: "demo" | "unload-demo" | "restore" | "reset" | "unreadable"; onConfirm: () => void }
 
 export function SaveIndicator({ state, error, lastSavedAt, onRetry }: { state: SaveState; error: string | null; lastSavedAt: Date | null; onRetry: () => void }) {
   if (state === "error") {
@@ -33,23 +34,31 @@ export function SaveIndicator({ state, error, lastSavedAt, onRetry }: { state: S
 const COPY: Record<PendingReplace["kind"], { title: string; body: string; action: string }> = {
   unreadable: { title: "Replace unreadable saved work?", body: "This permanently replaces the unreadable record in this browser with an empty workspace. Download the unreadable record first if you want to keep it for recovery. Cancelling leaves it unchanged.", action: "Replace saved work" },
   demo: { title: "Replace workspace with demo landscape?", body: "Loading demo data replaces the current evidence, assessment, overrides, narratives and baseline in this browser. Export a workspace backup first if you want to keep them.", action: "Load demo" },
-  restore: { title: "Replace workspace with backup?", body: "Restoring overwrites the current workspace in this browser after the server re-verifies the backup evidence and recomputes the assessment. If verification fails, nothing is replaced; re-upload the original evidence files instead.", action: "Restore backup" },
+  "unload-demo": { title: "Unload demo data?", body: "This removes demo evidence from this browser workspace. Uploaded evidence is kept, but the current assessment, classification overrides, narratives, AI explanations and baseline are cleared because they may depend on demo data. Export a workspace backup first to keep those edits. Run the assessment again for any remaining evidence. Shared assessments and approved exports are not changed.", action: "Unload demo data" },
+  restore: { title: "Replace workspace with backup?", body: "Restoring overwrites the current workspace in this browser after the server re-verifies the backup evidence and recomputes the assessment. If verification fails, nothing is replaced; re-upload the original evidence files instead.", action: "Import into this project" },
   reset: { title: "Clear this workspace?", body: "This permanently removes evidence, assessment, overrides, narratives and baseline from this browser. System and target release are kept.", action: "Clear workspace" },
 };
 
 export function ReplaceWorkspaceDialog({ pending, onClose }: { pending: PendingReplace | null; onClose: () => void }) {
   const copy = pending ? COPY[pending.kind] : null;
+  const { active } = useProject();
+  const scope = active ? `${active.client?.name ?? "Unknown client"} / ${active.project.name}` : "no project selected";
   return (
     <AlertDialog open={!!pending} onOpenChange={(open) => { if (!open) onClose(); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{copy?.title}</AlertDialogTitle>
           <AlertDialogDescription>{copy?.body}</AlertDialogDescription>
+          <div className="rounded-md border border-[#00468b]/25 bg-[#eef4fb] px-3 py-2 text-sm text-[#0b2a4a]" data-testid="text-replace-scope">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#00468b]">Target project</p>
+            <p className="font-medium">{scope}</p>
+            {pending?.kind === "restore" && <p className="mt-1 text-xs">This is an intentional import into this project only. The backup is not adopted automatically anywhere else, and its original project is not checked; confirm it belongs to this client before continuing.</p>}
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel data-testid="button-cancel-replace">Cancel</AlertDialogCancel>
           <AlertDialogAction data-testid="button-confirm-replace"
-            className={pending?.kind === "reset" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            className={pending?.kind === "reset" || pending?.kind === "unload-demo" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             onClick={() => { const p = pending; onClose(); p?.onConfirm(); }}>
             {copy?.action}
           </AlertDialogAction>

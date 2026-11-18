@@ -9,19 +9,15 @@ import type { ListSharedApprovalsKind } from './listSharedApprovalsKind';
 import type { ListSharedApprovalsShowSuperseded } from './listSharedApprovalsShowSuperseded';
 
 export type ListSharedApprovalsParams = {
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-/**
- * @maxLength 4096
- */
-cursor?: string;
-/**
- * @maxLength 200
- */
-search?: string;
-kind?: ListSharedApprovalsKind;
-showSuperseded?: ListSharedApprovalsShowSuperseded;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /** @maxLength 4096 */
+  cursor?: string;
+  /** @maxLength 200 */
+  search?: string;
+  kind?: ListSharedApprovalsKind;
+  showSuperseded?: ListSharedApprovalsShowSuperseded;
 };

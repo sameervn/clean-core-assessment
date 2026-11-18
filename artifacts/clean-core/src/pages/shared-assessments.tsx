@@ -1,8 +1,9 @@
+import { registerUnsavedWork } from "@/lib/project-scope";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, ArrowLeft, Download, Check, CheckCircle2, ChevronRight, Code2, FileCode, GitBranch, History, Inbox, Loader2,
+  AlertTriangle, ArrowLeft, Download, Check, CheckCircle2, ChevronRight,  FileCode, GitBranch, History, Inbox, Loader2,
   Lock, Pencil, RefreshCw, Search, Send, ShieldCheck, Undo2, Users, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,19 +12,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { YashLogo } from "@/components/yash-logo";
 import { ReviewNotifications } from "@/components/review-notifications";
+import { GithubConnections } from "@/components/github-connections";
+import { getActiveProjectId } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import {
-  CLASSIFICATIONS, DISPOSITIONS, FIELD_LABELS, TEXT_FIELDS, clearDraft, entityAction, evaluateSource, getAdministration, getShared, getSource,
-  githubConnect, githubDisconnect, githubFiles, githubStatus, isEditor, listShared, loadDraft, mapSource, normalizeContent, putContent,
-  putMember, putReviewer, sameId, saveDraft, stateKey, type Access, type ApiErr, type Proposal, type SharedContent, type SharedDetail, type SharedEntity,
+  CLASSIFICATIONS, DISPOSITIONS, FIELD_LABELS, TEXT_FIELDS, clearDraft, entityAction, evaluateSource, getAdministration, getShared,
+  isEditor, listShared, loadDraft, mapSource, normalizeContent, putContent,
+  putMember, putReviewer, sameId, saveDraft, stateKey, uploadSource, type Access, type ApiErr, type Proposal, type SharedContent, type SharedDetail, type SharedEntity,
 } from "@/lib/shared-assessments";
 import { COMPLEXITY_SIZES, UNASSESSED } from "@/lib/complexity-size";
 import { downloadSharedCsv, downloadSharedExcel, downloadSharedJson, downloadSharedPdf, downloadSharedPowerPoint } from "@/lib/shared-exports";
 import { saveBlob } from "@/lib/word-reports";
+import { SourceViewer } from "@/components/source-viewer";
+import { SourceMapper } from "@/components/source-mapper";
+import { SourceUploader } from "@/components/source-uploader";
 
 const POLL_MS = 20_000;
 const NONE = "__none";
@@ -32,7 +37,7 @@ const detailKey = (id: string) => ["shared-assessment", id];
 function Shell({ children, right }: { children: ReactNode; right?: ReactNode }) {
   const [, navigate] = useLocation();
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f3f6f9]">
+    <div className="flex min-h-[100dvh] min-w-0 flex-col bg-[#f3f6f9]">
       <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-8">
         <Button variant="ghost" size="sm" onClick={() => navigate("/")} data-testid="button-back-workspace"><ArrowLeft className="mr-1.5 h-4 w-4" /> Workspace</Button>
         <YashLogo />
@@ -64,12 +69,20 @@ export default function SharedAssessmentsPage() {
   const [, navigate] = useLocation();
   const params = new URLSearchParams(search);
   const selectedId = params.get("id");
-  const [tab, setTab] = useState<"assessments" | "inbox" | "admin" | "github">(params.get("tab") === "inbox" ? "inbox" : "assessments");
+  const requestedTab = params.get("tab");
+  const tab: "assessments" | "inbox" | "admin" | "github" = requestedTab === "inbox" || requestedTab === "github"
+    ? requestedTab : requestedTab === "admin" && isAdmin ? "admin" : "assessments";
+  // Keep the visible tab aligned with deep links and browser back/forward.
+  const setTab = (next: typeof tab) => {
+    const query = new URLSearchParams(search);
+    if (next === "assessments") query.delete("tab"); else query.set("tab", next);
+    navigate(`/shared-assessments${query.size ? `?${query}` : ""}`);
+  };
   const list = useQuery({ queryKey: ["shared-assessments"], queryFn: ({ signal }) => listShared(signal), refetchInterval: POLL_MS, refetchOnWindowFocus: true });
-  const tabs: Array<[typeof tab, string, any]> = [["assessments", "Assessments", ShieldCheck], ["inbox", "Reviewer inbox", Inbox], ["github", "Source (GitHub)", GitBranch], ...(isAdmin ? [["admin", "Administration", Users] as [typeof tab, string, any]] : [])];
+  const tabs: Array<[typeof tab, string, any]> = [["assessments", "Assessments", ShieldCheck], ["inbox", "Reviewer inbox", Inbox], ["github", "GitHub Connections", GitBranch], ...(isAdmin ? [["admin", "Administration", Users] as [typeof tab, string, any]] : [])];
   return (
     <Shell right={<Button variant="outline" size="sm" onClick={() => void list.refetch()} data-testid="button-refresh-shared"><RefreshCw className={`h-4 w-4 md:mr-1.5 ${list.isFetching ? "animate-spin" : ""}`} /><span className="hidden md:inline">Refresh</span></Button>}>
-      <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 md:px-8">
+      <nav className="flex flex-wrap gap-1 border-b border-slate-200 bg-white px-4 md:px-8">
         {tabs.map(([id, label, Icon]) => (
           <button key={id} onClick={() => setTab(id)} data-testid={`tab-shared-${id}`}
             className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors ${tab === id ? "border-[#003f84] font-medium text-[#081d33]" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
@@ -77,10 +90,10 @@ export default function SharedAssessmentsPage() {
           </button>
         ))}
       </nav>
-      <main className="flex-1 p-4 md:p-6">
+      <main className="min-w-0 flex-1 p-4 md:p-6">
         {tab === "assessments" && <AssessmentsView list={list} selectedId={selectedId} onSelect={id => navigate(id ? `/shared-assessments?id=${encodeURIComponent(id)}` : "/shared-assessments")} />}
         {tab === "inbox" && <InboxView ids={(list.data?.assessments || []).filter(a => a.access).map(a => a.id)} onOpen={(aid, eid) => { setTab("assessments"); navigate(`/shared-assessments?id=${encodeURIComponent(aid)}${eid ? `&entity=${encodeURIComponent(eid)}` : ""}`); }} />}
-        {tab === "github" && <GithubView />}
+        {tab === "github" && <GithubConnections />}
         {tab === "admin" && isAdmin && <AdminView />}
       </main>
     </Shell>
@@ -103,7 +116,7 @@ function SharedDownloads({ detail }: { detail: SharedDetail }) {
     finally { setBusy(null); }
   };
   return (
-    <div className="flex items-center gap-1 rounded-md border border-slate-200 px-1" title="Current server content, not sealed approvals">
+    <div className="flex min-w-0 flex-wrap items-center gap-1 rounded-md border border-slate-200 px-1" title="Current server content, not sealed approvals">
       <Download className="ml-1 h-3.5 w-3.5 text-slate-400" />
       {([["CSV", downloadSharedCsv], ["JSON", downloadSharedJson], ["Excel", downloadSharedExcel], ["PDF", downloadSharedPdf], ["PowerPoint", downloadSharedPowerPoint]] as const).map(([k, fn]) => (
         <Button key={k} size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={!!busy} onClick={() => void run(k, fn)} data-testid={`button-shared-download-${k.toLowerCase()}`}>{busy === k ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : k}</Button>
@@ -124,7 +137,7 @@ function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void 
 function AssessmentsView({ list, selectedId, onSelect }: { list: any; selectedId: string | null; onSelect: (id: string | null) => void }) {
   const rows = list.data?.assessments || [];
   return (
-    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+    <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
       <aside className="space-y-2">
         <p className="px-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">{rows.length} shared assessment{rows.length === 1 ? "" : "s"}</p>
         {list.isLoading && [0, 1, 2].map(i => <Skeleton key={i} className="h-16 w-full" />)}
@@ -198,7 +211,7 @@ function AssessmentDetail({ id }: { id: string }) {
           </Select>
         </div>
       </div>
-      <div className={`grid gap-3 ${selected ? "xl:grid-cols-[minmax(280px,380px)_1fr]" : ""}`}>
+      <div className={`grid min-w-0 grid-cols-1 gap-3 ${selected ? "xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]" : ""}`}>
         <div className="max-h-[calc(100dvh-260px)] overflow-y-auto rounded-md border border-slate-200 bg-white">
           {shown.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records match.</p>}
           {shown.map(e => (
@@ -229,13 +242,14 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
   const { toast } = useToast();
   const qc = useQueryClient();
   const uid = user!.id;
+  const draftProjectId = useRef(getActiveProjectId()).current;
   const editor = isEditor(detail.assessment) && ["Admin", "Developer"].includes(user!.role) && can("classify");
   const submitted = stateKey(entity.state) === "submitted";
   const assignedReviewer = sameId(entity.reviewer_id, uid);
   const reviewerNarrativeOnly = !editor && assignedReviewer && submitted;
   const canEdit = editor || reviewerNarrativeOnly;
 
-  const initialDraft = useMemo(() => loadDraft(uid, entity.id), [uid, entity.id]);
+  const initialDraft = useMemo(() => loadDraft(uid, entity.id, draftProjectId), [uid, entity.id, draftProjectId]);
   const [editing, setEditing] = useState(!!initialDraft);
   const [form, setForm] = useState<SharedContent>(() => initialDraft?.content ?? normalizeContent(entity.content));
   const [baseVersion, setBaseVersion] = useState(initialDraft?.baseVersion ?? entity.version);
@@ -244,11 +258,14 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  // Source/content/review revisions invalidate earlier source-analysis proposals.
+  useEffect(() => { setProposal(null); }, [entity.id, entity.version]);
   const [draftStorageFailed, setDraftStorageFailed] = useState(false);
 
   useEffect(() => {
-    if (editing) setDraftStorageFailed(!saveDraft(uid, entity.id, { baseVersion, content: form, error: saveError ?? undefined, conflict, savedAt: new Date().toISOString() }));
-  }, [editing, form, baseVersion, saveError, conflict, uid, entity.id]);
+    if (editing) setDraftStorageFailed(!saveDraft(uid, entity.id, { baseVersion, content: form, error: saveError ?? undefined, conflict, savedAt: new Date().toISOString() }, draftProjectId));
+  }, [editing, form, baseVersion, saveError, conflict, uid, entity.id, draftProjectId]);
+  useEffect(() => (editing ? registerUnsavedWork(() => true) : undefined), [editing]);
   useEffect(() => {
     if (!editing || !draftStorageFailed) return;
     const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
@@ -264,13 +281,13 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
   const startEdit = (seed?: Partial<SharedContent>) => {
     setForm({ ...normalizeContent(entity.content), ...seed }); setBaseVersion(entity.version); setSaveError(null); setConflict(false); setEditing(true);
   };
-  const cancel = () => { clearDraft(uid, entity.id); setEditing(false); setSaveError(null); setConflict(false); };
+  const cancel = () => { clearDraft(uid, entity.id, draftProjectId); setEditing(false); setSaveError(null); setConflict(false); };
   const save = async () => {
     setSaving(true); setSaveError(null);
     try {
       const payload = reviewerNarrativeOnly ? { ...normalizeContent(entity.content), narrative: form.narrative } : form;
       const { entity: next } = await putContent(entity.id, baseVersion, payload);
-      clearDraft(uid, entity.id); setEditing(false); setConflict(false);
+      clearDraft(uid, entity.id, draftProjectId); setEditing(false); setConflict(false);
       patchEntity(qc, detail.assessment.id, next);
       setJustSaved(true); window.setTimeout(() => setJustSaved(false), 1600);
     } catch (e: any) {
@@ -297,6 +314,14 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
       if (e?.status === 409) { pendingRequests.delete(key); void qc.invalidateQueries({ queryKey: detailKey(detail.assessment.id) }); }
       toast({ title: "Action not applied", description: e?.status === 409 ? (action === "approve" ? `${e?.message || "Conflict"}. Approval needs the record's latest version and a previewed company default Word template.` : "The record changed. Review the latest version and retry.") : `${e?.message || "Request failed"}. Retrying reuses the same request id.`, variant: "destructive" });
     } finally { setActing(null); }
+  };
+
+  const [evaluating, setEvaluating] = useState(false);
+  const evaluate = async () => {
+    setEvaluating(true);
+    try { setProposal((await evaluateSource(entity.id, entity.version)).proposal); }
+    catch (e: any) { toast({ title: "Evaluation failed", description: e?.message, variant: "destructive" }); }
+    finally { setEvaluating(false); }
   };
 
   const events = (detail.events || []).filter((ev: any) => !ev.entity_id || sameId(ev.entity_id, entity.id));
@@ -342,8 +367,8 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
         </div>
       )}
 
-      <div className="grid gap-4 p-4 2xl:grid-cols-[1fr_320px]">
-        <div className="space-y-3">
+      <div className="grid min-w-0 grid-cols-1 gap-4 p-4 2xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
             <EnumField label={FIELD_LABELS.classification} value={view.classification} options={CLASSIFICATIONS} editable={fieldEditable("classification")} onChange={v => set("classification", v)} testId="classification" />
             <EnumField label={FIELD_LABELS.disposition} value={view.disposition} options={DISPOSITIONS} editable={fieldEditable("disposition")} onChange={v => set("disposition", v)} testId="disposition" />
@@ -354,7 +379,7 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
           ))}
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <section className="rounded-md border border-slate-200 p-3">
             <h4 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-slate-500">Review workflow</h4>
             <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Comment (recorded in history)" className="min-h-[60px] text-sm" data-testid="input-action-comment" />
@@ -370,8 +395,17 @@ function EntityPanel({ detail, entity, onClose }: { detail: SharedDetail; entity
             {!editor && !assignedReviewer && <p className="mt-2 text-[11px] text-slate-500">No workflow actions available for your membership.</p>}
           </section>
           {isAdmin && <ReviewerAssign entity={entity} assessmentId={detail.assessment.id} />}
-          <SourcesSection entity={entity} />
-          {editor && <GithubMapping entity={entity} assessmentId={detail.assessment.id} onProposal={setProposal} />}
+          <section className="space-y-2 rounded-md border border-slate-200 p-3" data-testid="section-entity-source">
+            <h4 className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-500"><FileCode className="h-3.5 w-3.5" />Source code</h4>
+            <SourceViewer entity={entity} />
+            {editor && can("evidence") && <SourceMapper name={String(entity.evidence?.snapshot?.objectName ?? entity.evidence?.objectName ?? entity.name)} objectType={entity.evidence?.snapshot?.objectType ?? entity.evidence?.objectType}
+              state={entity.state} recordVersion={entity.version} existingSources={entity.sources} blockedReason={editing ? "Save or cancel your edit before mapping source." : null}
+              commit={async m => { try { const r = await mapSource(entity.id, { expectedVersion: entity.version, ...m }); patchEntity(qc, detail.assessment.id, r.entity); if (r.proposal) setProposal(r.proposal); } catch (e: any) { if (e?.status === 409) void qc.invalidateQueries({ queryKey: detailKey(detail.assessment.id) }); throw e; } }}
+              extra={<Button size="sm" variant="outline" className="h-8 text-xs" disabled={evaluating || !entity.sources?.length} onClick={() => void evaluate()} data-testid="button-evaluate-source">{evaluating && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}Rule check (no AI)</Button>} />}
+            {editor && can("evidence") && <SourceUploader name={entity.name} state={entity.state} recordVersion={entity.version} existingSources={entity.sources}
+              blockedReason={editing ? "Save or cancel your edit before uploading source." : null}
+              commit={async u => { if (u.version === null) { const e = new Error("No confirmed record version; review and confirm again") as ApiErr; e.status = 409; throw e; } try { const r = await uploadSource(entity.id, { expectedVersion: u.version, fileName: u.fileName, fileBase64: u.fileBase64 }); patchEntity(qc, detail.assessment.id, r.entity); } catch (e: any) { if (e?.status === 409) void qc.invalidateQueries({ queryKey: detailKey(detail.assessment.id) }); throw e; } }} />}
+          </section>
           {proposal && (
             <section className="rounded-md border border-sky-200 bg-sky-50/60 p-3 text-xs" data-testid="card-proposal">
               <h4 className="mb-1 font-semibold text-sky-950">Deterministic source proposal (not applied)</h4>
@@ -468,92 +502,6 @@ function ReviewerAssign({ entity, assessmentId }: { entity: SharedEntity; assess
   );
 }
 
-function SourcesSection({ entity }: { entity: SharedEntity }) {
-  const [open, setOpen] = useState<number | null>(null);
-  const src = useQuery({ queryKey: ["shared-source", entity.id, open, entity.version], queryFn: ({ signal }) => getSource(entity.id, open!, signal), enabled: open !== null });
-  const sources = Array.isArray(entity.sources) ? entity.sources : [];
-  return (
-    <section className="rounded-md border border-slate-200 p-3">
-      <h4 className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-500"><FileCode className="h-3.5 w-3.5" />Mapped source</h4>
-      {sources.length === 0 ? <p className="text-xs text-slate-500">No source mapped.</p> : (
-        <ul className="space-y-1">{sources.map((s: any, i: number) => (
-          <li key={i} className="flex items-center gap-2 text-xs">
-            <span className="min-w-0 flex-1 truncate font-mono text-[10px]" title={`${s.repository}@${s.commit}:${s.path}`}>{s.repository}:{s.path} @{String(s.commit || "").slice(0, 7)}</span>
-            <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setOpen(i)} data-testid={`button-view-source-${i}`}><Code2 className="h-3.5 w-3.5" /></Button>
-          </li>
-        ))}</ul>
-      )}
-      <Dialog open={open !== null} onOpenChange={o => { if (!o) setOpen(null); }}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader><DialogTitle className="font-mono text-sm">{open !== null ? `${sources[open]?.path}` : ""}</DialogTitle><DialogDescription>{open !== null ? `${sources[open]?.repository} at commit ${sources[open]?.commit}` : ""}</DialogDescription></DialogHeader>
-          {src.isLoading ? <Skeleton className="h-64 w-full" /> : src.error ? <ErrorBox message={(src.error as Error).message} onRetry={() => void src.refetch()} /> :
-            <pre className="max-h-[60vh] overflow-auto rounded bg-[#081d33] p-3 font-mono text-[11px] leading-relaxed text-slate-100" data-testid="text-source-code">{src.data?.code}</pre>}
-        </DialogContent>
-      </Dialog>
-    </section>
-  );
-}
-
-function GithubMapping({ entity, assessmentId, onProposal }: { entity: SharedEntity; assessmentId: string; onProposal: (p: Proposal) => void }) {
-  const qc = useQueryClient(); const { toast } = useToast();
-  const status = useQuery({ queryKey: ["shared-github"], queryFn: ({ signal }) => githubStatus(signal) });
-  const [repo, setRepo] = useState(""); const [ref, setRef] = useState("main"); const [filter, setFilter] = useState("");
-  const [files, setFiles] = useState<{ commit: string; files: Array<{ path: string; size: number }> } | null>(null);
-  const [loading, setLoading] = useState(false); const [picked, setPicked] = useState<string | null>(null); const [busy, setBusy] = useState(false);
-  const loadFiles = async () => {
-    setLoading(true); setFiles(null);
-    try { setFiles(await githubFiles(repo, ref)); } catch (e: any) { toast({ title: "Could not list files", description: e?.message, variant: "destructive" }); }
-    finally { setLoading(false); }
-  };
-  const confirmMap = async () => {
-    if (!files || !picked) return; setBusy(true);
-    try {
-      const r = await mapSource(entity.id, { expectedVersion: entity.version, repository: repo, commit: files.commit, path: picked });
-      patchEntity(qc, assessmentId, r.entity); if (r.proposal) onProposal(r.proposal); setPicked(null);
-      toast({ title: "Source mapped", description: "Content fields were not changed." });
-    } catch (e: any) { toast({ title: "Mapping failed", description: e?.status === 409 ? "The record changed; reload and retry." : e?.message, variant: "destructive" }); }
-    finally { setBusy(false); }
-  };
-  const evaluate = async () => {
-    setBusy(true);
-    try { onProposal((await evaluateSource(entity.id, entity.version)).proposal); }
-    catch (e: any) { toast({ title: "Evaluation failed", description: e?.message, variant: "destructive" }); }
-    finally { setBusy(false); }
-  };
-  if (status.isLoading) return <Skeleton className="h-20 w-full" />;
-  const s = status.data;
-  return (
-    <section className="rounded-md border border-slate-200 p-3">
-      <h4 className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-500"><GitBranch className="h-3.5 w-3.5" />Map GitHub source</h4>
-      {!s?.configured ? <p className="text-xs text-slate-500">GitHub integration is not configured on this server.</p> : !s.connected ? <p className="text-xs text-slate-500">Connect GitHub in the Source tab first.</p> : <>
-        <div className="space-y-2">
-          <Select value={repo} onValueChange={v => { setRepo(v); setFiles(null); }}>
-            <SelectTrigger className="h-8 text-xs" data-testid="select-github-repo"><SelectValue placeholder="Repository" /></SelectTrigger>
-            <SelectContent>{s.repositories.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-          </Select>
-          <div className="flex gap-2"><Input value={ref} onChange={e => setRef(e.target.value)} placeholder="Branch, tag or commit" className="h-8 text-xs" data-testid="input-github-ref" />
-            <Button size="sm" className="h-8" variant="outline" disabled={!repo || !ref || loading} onClick={() => void loadFiles()} data-testid="button-load-files">{loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Files"}</Button></div>
-          {files && <>
-            <Input value={filter} onChange={e => setFilter(e.target.value)} placeholder={`Filter ${files.files.length} files`} className="h-8 text-xs" data-testid="input-filter-files" />
-            <ul className="max-h-48 overflow-y-auto rounded border border-slate-100">
-              {files.files.filter(f => !filter || f.path.toLowerCase().includes(filter.toLowerCase())).slice(0, 300).map(f => (
-                <li key={f.path}><button onClick={() => setPicked(f.path)} className="w-full truncate px-2 py-1 text-left font-mono text-[10px] transition-colors hover:bg-slate-50" data-testid={`button-pick-file-${f.path}`}>{f.path}</button></li>
-              ))}
-            </ul>
-          </>}
-        </div>
-        <Button size="sm" variant="outline" className="mt-2 h-7 w-full text-xs" disabled={busy || !entity.sources?.length} onClick={() => void evaluate()} data-testid="button-evaluate-source">Deterministic rule check (no AI)</Button>
-        <Dialog open={!!picked} onOpenChange={o => { if (!o) setPicked(null); }}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Map source to {entity.name}?</DialogTitle><DialogDescription>Links <span className="font-mono">{repo}:{picked}</span> at commit <span className="font-mono">{files?.commit.slice(0, 10)}</span> to this record. Any returned proposal is shown separately and never overwrites content.</DialogDescription></DialogHeader>
-            <DialogFooter><Button variant="outline" onClick={() => setPicked(null)}>Cancel</Button><Button disabled={busy} onClick={() => void confirmMap()} data-testid="button-confirm-map">{busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Confirm mapping</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </>}
-    </section>
-  );
-}
-
 function InboxView({ ids, onOpen }: { ids: string[]; onOpen: (assessmentId: string, entityId?: string) => void }) {
   const { user } = useAuth();
   const results = useQueries({ queries: ids.map(id => ({ queryKey: detailKey(id), queryFn: ({ signal }: { signal: AbortSignal }) => getShared(id, signal), refetchInterval: POLL_MS, refetchOnWindowFocus: true })) });
@@ -574,33 +522,6 @@ function InboxView({ ids, onOpen }: { ids: string[]; onOpen: (assessmentId: stri
           </button></li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function GithubView() {
-  const qc = useQueryClient(); const { toast } = useToast();
-  const status = useQuery({ queryKey: ["shared-github"], queryFn: ({ signal }) => githubStatus(signal) });
-  const [busy, setBusy] = useState(false);
-  const run = async (fn: () => Promise<unknown>) => {
-    setBusy(true);
-    try { await fn(); await qc.invalidateQueries({ queryKey: ["shared-github"] }); } catch (e: any) { toast({ title: "GitHub request failed", description: e?.message, variant: "destructive" }); } finally { setBusy(false); }
-  };
-  return (
-    <div className="mx-auto max-w-2xl space-y-3">
-      <h2 className="text-lg font-semibold text-[#081d33]">Source repositories</h2>
-      <p className="text-sm text-slate-600">Map ABAP source files to shared records and run a deterministic rule check. AI source evaluation is not available.</p>
-      {status.isLoading ? <Skeleton className="h-24 w-full" /> : status.error ? <ErrorBox message={(status.error as Error).message} onRetry={() => void status.refetch()} /> : (
-        <div className="rounded-md border border-slate-200 bg-white p-4" data-testid="card-github-status">
-          <p className="text-sm"><strong>Status:</strong> {!status.data!.configured ? "Not configured on this server" : status.data!.connected ? "Connected" : "Not connected"}</p>
-          {status.data!.connected && <p className="mt-1 text-xs text-slate-600">{status.data!.repositories.length} repositories: <span className="font-mono">{status.data!.repositories.join(", ") || "none"}</span></p>}
-          {status.data!.configured && (
-            <div className="mt-3">{status.data!.connected
-              ? <Button variant="outline" size="sm" disabled={busy} onClick={() => void run(githubDisconnect)} data-testid="button-github-disconnect">Disconnect</Button>
-              : <Button size="sm" disabled={busy} onClick={() => void run(githubConnect)} data-testid="button-github-connect">Connect GitHub</Button>}</div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

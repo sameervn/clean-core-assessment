@@ -10,11 +10,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiJson } from "@/lib/api";
+import { apiJson, LEGACY_PROJECT_ID } from "@/lib/api";
+import { useProject } from "@/lib/project";
+import { FolderKanban } from "lucide-react";
 import { useAuth, initials } from "@/lib/auth";
 import {
   openWorkspaceStore, parseBackup, validateWorkspace, emptyWorkspace, inspectAnonymousWorkspace, claimAnonymousWorkspace,
-  declineAnonymousWorkspace, MAX_BACKUP_FILE_BYTES, type StoredWorkspace, type WorkspaceStore, type AnonymousWorkspaceInfo,
+  declineAnonymousWorkspace, workspaceScopeFor, MAX_BACKUP_FILE_BYTES, type StoredWorkspace, type WorkspaceStore, type AnonymousWorkspaceInfo,
 } from "@/lib/workspace-store";
 
 type ReadOnlyView = { workspace: StoredWorkspace; label: string; seq: number };
@@ -29,16 +31,20 @@ export default function WorkspaceRoute() {
   const auth = useAuth();
   const user = auth.user!;
   const userId = String(user.id);
+  const { active } = useProject();
+  const projectId = active!.project.id;
+  const isLegacy = projectId === LEGACY_PROJECT_ID;
+  const expectedScope = workspaceScopeFor(userId, projectId);
   const [store, setStore] = useState<WorkspaceStore | null>(null);
   const [view, setView] = useState<ReadOnlyView | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
 
   useEffect(() => {
-    const handle = openWorkspaceStore(userId);
+    const handle = openWorkspaceStore(userId, projectId);
     setStore(handle);
     setView(null);
-    return () => { handle.dispose(); setStore(null); };
-  }, [userId]);
+    return () => { handle.disposeWhenIdle(); setStore(null); };
+  }, [userId, projectId]);
 
   const authRef = useRef(auth);
   authRef.current = auth;
@@ -49,7 +55,7 @@ export default function WorkspaceRoute() {
   }), [auth.signature]);
 
   if (!auth.can("view")) return <NoAccess />;
-  if (!store || store.scope !== `user-${userId}`) {
+  if (!store || store.scope !== expectedScope) {
     return <div className="flex min-h-[100dvh] items-center justify-center bg-slate-50" data-testid="status-loading-workspace"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
 
@@ -59,7 +65,7 @@ export default function WorkspaceRoute() {
 
   return (
     <>
-      {auth.isAdmin && !view && <AnonymousClaimBanner store={store} onImported={() => setReloadSeq(n => n + 1)} />}
+      {auth.isAdmin && isLegacy && !view && <AnonymousClaimBanner store={store} onImported={() => setReloadSeq(n => n + 1)} />}
       <CleanCoreAssessmentPage
         key={`${auth.signature}:${view ? `ro-${view.seq}` : `saved-${reloadSeq}`}`}
         mode={mode}
@@ -100,7 +106,9 @@ function AccountMenu({ onOpenReadOnly }: { onOpenReadOnly: (ws: StoredWorkspace,
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const { active, openChooser } = useProject();
   if (!user) return null;
+  const scopeLabel = active ? `${active.client?.name ?? "Unknown client"} / ${active.project.name}` : "no project";
 
   const openDemo = async () => {
     setLoadingDemo(true);
@@ -124,7 +132,7 @@ function AccountMenu({ onOpenReadOnly }: { onOpenReadOnly: (ws: StoredWorkspace,
     // Re-check with the server after the (possibly slow) read: catches revoked access.
     try { await authorize("view"); }
     catch (e: any) { toast({ title: "Not permitted", description: e?.message, variant: "destructive" }); return; }
-    onOpenReadOnly(result.workspace, `backup “${file.name}” (as stored, not re-verified)`);
+    onOpenReadOnly(result.workspace, `backup “${file.name}” previewed in ${scopeLabel} (as stored, not re-verified)`);
   };
 
   return (
@@ -145,11 +153,18 @@ function AccountMenu({ onOpenReadOnly }: { onOpenReadOnly: (ws: StoredWorkspace,
             <p className="font-mono text-[10px] font-normal leading-relaxed text-muted-foreground" data-testid="text-effective-permissions">{user.permissions.join(" · ")}</p>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuLabel className="font-normal">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Active project</p>
+            <p className="truncate text-sm" data-testid="text-menu-active-project">{scopeLabel}</p>
+          </DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => openChooser()} data-testid="menu-switch-project"><FolderKanban className="mr-2 h-4 w-4" /> Switch project</DropdownMenuItem>
+          {isAdmin && <DropdownMenuItem onSelect={() => navigate("/admin/projects")} data-testid="menu-manage-projects"><Users className="mr-2 h-4 w-4" /> Clients &amp; projects</DropdownMenuItem>}
+          <DropdownMenuSeparator />
           <DropdownMenuItem disabled={loadingDemo} onSelect={() => void openDemo()} data-testid="menu-preview-demo">
             {loadingDemo ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />} Preview demo (read-only)
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => fileRef.current?.click()} data-testid="menu-open-backup-readonly">
-            <FileUp className="mr-2 h-4 w-4" /> Open backup read-only…
+            <FileUp className="mr-2 h-4 w-4" /> Open backup read-only in {scopeLabel}…
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {(can as (p: string) => boolean)("knowledge.read") && <DropdownMenuItem onSelect={() => navigate("/knowledge")} data-testid="menu-knowledge"><Library className="mr-2 h-4 w-4" /> Knowledge base</DropdownMenuItem>}

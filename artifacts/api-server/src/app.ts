@@ -15,6 +15,8 @@ import { probes, productionFrontend } from "./runtime";
 import { uploadRouter } from "./knowledge/upload-token";
 import { requestLimit, requestLimitOptions, requestLimitFailure } from "./request-limits";
 import { boundRequest } from "./input-bounds";
+import { clientProjectsRouter } from "./routes/client-projects";
+import { requireProject } from "./projects/middleware";
 
 const app: Express = express();
 
@@ -58,9 +60,15 @@ app.use("/api", mutationProtection);
 app.use("/api/auth", express.json({ limit: 4096 }), boundRequest);
 app.use("/api/admin", express.json({ limit: 8192 }), boundRequest);
 app.use("/api", accountRouter);
+app.use("/api/client-projects", express.json({ limit: 4096 }), boundRequest, clientProjectsRouter);
+app.use("/api", requireProject);
 app.use("/api/report-templates", express.json({ limit: 2_100_000 }), boundRequest, reportTemplateRouter);
 // Apply the smaller AI body limit before the assessment's evidence parser.
 app.use("/api/clean-core/ai", express.json({ limit: 2048 }));
+// Credential management must not inherit the large assessment-evidence body limit.
+app.use("/api/shared-assessments/github", express.json({ limit: 4096 }), boundRequest);
+// Bounded base64 transport preserves original bytes for strict UTF-8 validation.
+app.use("/api/shared-assessments/entities/:id/source-upload", express.json({ limit: 360_000 }), boundRequest);
 app.use(express.json({ limit: 18_000_000 }));
 app.use(boundRequest);
 app.use("/api/shared-assessments", assessmentGithubRouter, assessmentExportsRouter, collaborationRouter);

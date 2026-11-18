@@ -5,7 +5,7 @@ import { StartWordTemplateUploadBody, UpdateWordTemplateBody, DeleteWordTemplate
 import { requireSession, requirePermission } from "../auth/middleware";
 import { AiError } from "../assessment-ai";
 import { storageConfigured } from "../knowledge/storage";
-import { reference, example, fields } from "../reports/contract.mjs";
+import { reference, example, fields, BUILTIN_TEMPLATE_ID, BUILTIN_TEMPLATE_VERSION } from "../reports/contract.mjs";
 import { processWord } from "../reports/process";
 import { rateLimit } from "express-rate-limit";
 import { requestLimit, requestLimitOptions, requestLimitFailure } from "../request-limits";
@@ -46,13 +46,14 @@ reportTemplateRouter.get("/", wrap(async (req, res) => {
   const rows = (await pool.query("SELECT * FROM cc_report_templates WHERE owner_id=$1 AND status='ready' ORDER BY created_at DESC", [req.identity!.user.id])).rows;
   const companies = (await pool.query("SELECT * FROM cc_company_templates WHERE previewed ORDER BY active DESC,created_at DESC")).rows;
   res.json({ templates: [...companies.map(r => ({ ...view(r), name: `${r.name} (company)`, company: true })), ...rows.map(view)],
-    activeId: companies.find(r => r.active)?.id ?? rows.find(r => r.active)?.id ?? null, configured: storageConfigured() });
+    activeId: companies.find(r => r.active)?.id ?? rows.find(r => r.active)?.id ?? BUILTIN_TEMPLATE_ID, configured: storageConfigured() });
 }));
 reportTemplateRouter.get("/reference", (_req, res) => { res.json(reference); });
 reportTemplateRouter.get("/sample", requirePermission("export"), wrap(async (req, res) => {
-  const bytes = await processWord({ mode: "sample" }, signal(res));
+  const layout = z.enum(["generic", "yash"]).optional().parse(req.query.layout);
+  const bytes = await processWord({ mode: layout === "yash" ? "builtin-template" : "sample" }, signal(res));
   await fresh(req.identity!, "export");
-  download(res, bytes, "clean-core-sample-template.docx");
+  download(res, bytes, layout === "yash" ? "yash-clean-core-template.docx" : "clean-core-sample-template.docx");
 }));
 reportTemplateRouter.post("/uploads", requirePermission("templates.manage"), wrap(async (req, res) => {
   const body = StartWordTemplateUploadBody.strict().parse(req.body);
@@ -83,9 +84,11 @@ reportTemplateRouter.delete("/:id", requirePermission("templates.manage"), wrap(
 }));
 reportTemplateRouter.post("/preview", requirePermission("export"), wrap(async (req, res) => {
   const body = PreviewWordTemplateBody.strict().parse(req.body);
-  const selected = body.templateId === "sample" ? null : await templateBytes(req.identity!, id(body.templateId));
+  const builtin = body.templateId === BUILTIN_TEMPLATE_ID;
+  if (builtin && body.expectedVersion !== undefined && body.expectedVersion !== BUILTIN_TEMPLATE_VERSION) throw new AiError(409, "Built-in template changed. Refresh and preview again.");
+  const selected = body.templateId === "sample" || builtin ? null : await templateBytes(req.identity!, id(body.templateId));
   if (selected && body.expectedVersion !== undefined) version(selected.row, body.expectedVersion);
-  const bytes = await processWord({ mode: "render", bytes: selected?.bytes.toString("base64"), entities: [example] }, signal(res));
+  const bytes = await processWord({ mode: builtin ? "builtin-render" : "render", bytes: selected?.bytes.toString("base64"), entities: [example] }, signal(res));
   await locked(req.identity!, "export", async c => {
     if (selected) {
       version(await recheckTemplate(c, req.identity!, selected.row), selected.row.version);
@@ -113,9 +116,10 @@ reportTemplateRouter.post("/render", requirePermission("export"), wrap(async (re
     return entity;
   });
   if (JSON.stringify(entities).length > 2_000_000) throw new AiError(413, "Report data exceeds 2 MB. Select fewer entities.");
-  const selected = body.templateId === "sample" ? null : await templateBytes(req.identity!, id(body.templateId));
+  const builtin = body.templateId === BUILTIN_TEMPLATE_ID;
+  const selected = body.templateId === "sample" || builtin ? null : await templateBytes(req.identity!, id(body.templateId));
   if (selected && !selected.row.previewed) throw new AiError(409, "Preview this template before exporting.");
-  const bytes = await processWord({ mode: "render", bytes: selected?.bytes.toString("base64"), entities }, signal(res));
+  const bytes = await processWord({ mode: builtin ? "builtin-render" : "render", bytes: selected?.bytes.toString("base64"), entities }, signal(res));
   await locked(req.identity!, "export", async c => {
     if (selected) version(await recheckTemplate(c, req.identity!, selected.row), selected.row.version);
     const count = new Set(entities.map(x => x.entity_id)).size;

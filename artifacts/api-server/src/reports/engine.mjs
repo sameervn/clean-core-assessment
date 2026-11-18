@@ -5,6 +5,7 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { posix } from "node:path";
 import { fields, rowFields } from "./contract.mjs";
 import { SaxesParser } from "saxes";
+import { readFileSync } from "node:fs";
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const parser = new XMLParser({ ignoreAttributes: false, processEntities: true, removeNSPrefix: true });
@@ -150,11 +151,16 @@ export function sample() {
   return zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
 }
 
+export function builtInTemplate() {
+  return readFileSync(new URL("./yash-clean-core.docx", import.meta.url));
+}
+
 export async function run({ bytes, mode, entities }) {
-  const template = bytes ? Buffer.from(bytes, "base64") : sample();
+  const template = mode === "builtin-template" || mode === "builtin-render"
+    ? builtInTemplate() : bytes ? Buffer.from(bytes, "base64") : sample();
   await validate(template);
   if (mode === "validate") return Buffer.alloc(0);
-  if (mode === "sample") return template;
+  if (mode === "sample" || mode === "builtin-template") return template;
   const zip = new PizZip(); let total = 0;
   const unique = new Map();
   for (const entity of entities) {

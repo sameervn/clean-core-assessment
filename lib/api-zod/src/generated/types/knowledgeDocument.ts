@@ -16,6 +16,7 @@ export interface KnowledgeDocument {
   filename: string;
   version: number;
   status: KnowledgeDocumentStatus;
+  /** @nullable */
   error: string | null;
   createdAt: string;
 }

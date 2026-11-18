@@ -5,6 +5,147 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ClientNameInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+}
+
+export interface ClientProjectInput {
+  clientId: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+}
+
+export interface ProjectMemberInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  userId: string;
+  enabled: boolean;
+}
+
+export interface AssessmentClient {
+  id: string;
+  name: string;
+}
+
+export type ProjectProvisioningInputAction = typeof ProjectProvisioningInputAction[keyof typeof ProjectProvisioningInputAction];
+
+
+export const ProjectProvisioningInputAction = {
+  retry: 'retry',
+  cancel: 'cancel',
+} as const;
+
+export interface ProjectProvisioningInput {
+  action: ProjectProvisioningInputAction;
+}
+
+export type ClientProjectProvisioningStatus = typeof ClientProjectProvisioningStatus[keyof typeof ClientProjectProvisioningStatus];
+
+
+export const ClientProjectProvisioningStatus = {
+  pending: 'pending',
+  failed: 'failed',
+  ready: 'ready',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ClientProject {
+  id: string;
+  clientId: string;
+  name: string;
+  legacy: boolean;
+  assigned: boolean;
+  provisioningStatus: ClientProjectProvisioningStatus;
+  /** @nullable */
+  provisioningError: string | null;
+}
+
+export interface ClientProjectCatalog {
+  clients: AssessmentClient[];
+  projects: ClientProject[];
+}
+
+export type ProjectDirectoryUserRole = typeof ProjectDirectoryUserRole[keyof typeof ProjectDirectoryUserRole];
+
+
+export const ProjectDirectoryUserRole = {
+  Admin: 'Admin',
+  Developer: 'Developer',
+  Reviewer: 'Reviewer',
+} as const;
+
+export interface ProjectDirectoryUser {
+  id: string;
+  username: string;
+  role: ProjectDirectoryUserRole;
+  assigned: boolean;
+  active: boolean;
+}
+
+export interface ProjectMemberDirectory {
+  users: ProjectDirectoryUser[];
+}
+
+export interface GithubConnectionCheckInput {
+  /**
+     * @minLength 3
+     * @maxLength 200
+     */
+  repository: string;
+}
+
+export interface GithubConnectionCheckResult {
+  repository: string;
+  checkedAt: string;
+}
+
+export interface GithubConnectionInput {
+  /**
+     * owner/repo or an HTTPS github.com repository URL
+     * @minLength 3
+     * @maxLength 200
+     */
+  repository: string;
+  /**
+     * GitHub account login; must match the token owner
+     * @minLength 1
+     * @maxLength 39
+     */
+  username: string;
+  /**
+     * Fine-grained personal access token with Contents and Metadata read-only; not an account password
+     * @minLength 20
+     * @maxLength 255
+     */
+  token: string;
+}
+
+export interface GithubSavedConnection {
+  repository: string;
+  username: string;
+  connectedAt: string;
+  /** Stored credential can be decrypted; live token expiry is checked on GitHub reads */
+  usable: boolean;
+}
+
+export interface GithubConnectionStatus {
+  /** Secure credential storage is available on this server */
+  configured: boolean;
+  connected: boolean;
+  /** This account's usable repository connections */
+  repositories: string[];
+  connections: GithubSavedConnection[];
+}
+
 export interface ReviewNotification {
   id: string;
   assessmentId: string;
@@ -394,6 +535,96 @@ export interface SharedAssignment {
   reviewerId: string;
 }
 
+export interface SharedSourceUpload {
+  /** @minimum 1 */
+  expectedVersion: number;
+  /**
+     * @minLength 1
+     * @maxLength 180
+     */
+  fileName: string;
+  /**
+     * Canonical base64 encoding of a UTF-8 .txt or .abap file
+     * @minLength 4
+     * @maxLength 341336
+     */
+  fileBase64: string;
+}
+
+export interface ProjectSourceSelection {
+  /**
+     * @minLength 3
+     * @maxLength 200
+     */
+  repository: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  ref: string;
+  /** @maxLength 500 */
+  folder: string;
+}
+
+export const ProjectSourceConfirmationValue = {
+  confirmed: true,
+} as const;
+export type ProjectSourceConfirmation = typeof ProjectSourceConfirmationValue;
+
+export type ProjectSourceEntryStatus = typeof ProjectSourceEntryStatus[keyof typeof ProjectSourceEntryStatus];
+
+
+export const ProjectSourceEntryStatus = {
+  ready: 'ready',
+  deferred: 'deferred',
+  ambiguous: 'ambiguous',
+  unmatched: 'unmatched',
+  unchanged: 'unchanged',
+  imported: 'imported',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ProjectSourceEntry {
+  id: string;
+  assessmentId: string;
+  assessmentName: string;
+  name: string;
+  kind: string;
+  version: number;
+  state: string;
+  paths: string[];
+  status: ProjectSourceEntryStatus;
+  message: string;
+}
+
+export type ProjectSourceImportStatus = typeof ProjectSourceImportStatus[keyof typeof ProjectSourceImportStatus];
+
+
+export const ProjectSourceImportStatus = {
+  preview: 'preview',
+  running: 'running',
+  completed: 'completed',
+  cancelled: 'cancelled',
+  interrupted: 'interrupted',
+} as const;
+
+export interface ProjectSourceImport {
+  id: string;
+  repository: string;
+  ref: string;
+  folder: string;
+  commit: string;
+  status: ProjectSourceImportStatus;
+  entries: ProjectSourceEntry[];
+  createdAt: string;
+  message: string;
+  limit: number;
+}
+
+/**
+ * Provide exactly one of path or paths. All selected files are attached atomically in one new draft revision.
+ */
 export interface SharedSourceMapping {
   /** @minimum 1 */
   expectedVersion: number;
@@ -405,7 +636,14 @@ export interface SharedSourceMapping {
      * @minLength 1
      * @maxLength 1000
      */
-  path: string;
+  path?: string;
+  /**
+     * @minItems 1
+     * @maxItems 10
+     * @items.minLength 1
+     * @items.maxLength 1000
+     */
+  paths?: string[];
 }
 
 export interface CompanyTemplateUpload {
@@ -414,7 +652,7 @@ export interface CompanyTemplateUpload {
      * @maxLength 120
      */
   name: string;
-  file: Blob;
+  file: Blob | File;
   replaceId?: string;
   /** @minimum 1 */
   expectedVersion?: number;
@@ -606,6 +844,7 @@ export interface KnowledgeDocument {
   filename: string;
   version: number;
   status: KnowledgeDocumentStatus;
+  /** @nullable */
   error: string | null;
   createdAt: string;
 }
@@ -1091,7 +1330,7 @@ export interface AssessmentInput {
 }
 
 export interface EvidenceUpload {
-  file: Blob;
+  file: Blob | File;
   type: string;
 }
 
@@ -1107,16 +1346,14 @@ export interface HealthStatus {
 }
 
 export type ListReviewNotificationsParams = {
-/**
- * Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.
- * @maxLength 19
- * @pattern ^[1-9][0-9]{0,18}$
- */
-cursor?: string;
-/**
- * Apply the same filter when following nextCursor.
- */
-filter?: ListReviewNotificationsFilter;
+  /**
+   * Exclusive event ID from nextCursor. Pages are newest first and always scoped to the signed-in recipient and current access. Newer arrivals appear on refresh, not in older pages.
+   * @maxLength 19
+   * @pattern ^[1-9][0-9]{0,18}$
+   */
+  cursor?: string;
+  /** Apply the same filter when following nextCursor. */
+  filter?: ListReviewNotificationsFilter;
 };
 
 export type ListReviewNotificationsFilter = typeof ListReviewNotificationsFilter[keyof typeof ListReviewNotificationsFilter];
@@ -1137,16 +1374,16 @@ export type PublishSharedAssessment200 = {
 };
 
 export type GetWorkspaceReviewParams = {
-/**
- * @minLength 1
- * @maxLength 200
- */
-importKey: string;
-/**
- * @minLength 1
- * @maxLength 1000
- */
-key: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  importKey: string;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   */
+  key: string;
 };
 
 export type GetSharedAssessment200MembersItem = { [key: string]: unknown };
@@ -1160,33 +1397,41 @@ export type GetSharedAssessment200 = {
   events: GetSharedAssessment200EventsItem[];
 };
 
+export type DisconnectSharedGithubParams = {
+  /**
+   * Saved owner/repository to remove; omit to remove all this account's connections
+   * @maxLength 200
+   */
+  repository?: string;
+};
+
 export type SharedGithubFilesParams = {
-/**
- * @maxLength 200
- */
-repository: string;
-/**
- * @maxLength 200
- */
-ref: string;
+  /** @maxLength 200 */
+  repository: string;
+  /** @maxLength 200 */
+  ref: string;
+};
+
+export type ReadSharedSourceParams = {
+  /**
+   * Reject with 409 if this entity revision is no longer current
+   * @minimum 1
+   */
+  version?: number;
 };
 
 export type ListSharedApprovalsParams = {
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-/**
- * @maxLength 4096
- */
-cursor?: string;
-/**
- * @maxLength 200
- */
-search?: string;
-kind?: ListSharedApprovalsKind;
-showSuperseded?: ListSharedApprovalsShowSuperseded;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /** @maxLength 4096 */
+  cursor?: string;
+  /** @maxLength 200 */
+  search?: string;
+  kind?: ListSharedApprovalsKind;
+  showSuperseded?: ListSharedApprovalsShowSuperseded;
 };
 
 export type ListSharedApprovalsKind = typeof ListSharedApprovalsKind[keyof typeof ListSharedApprovalsKind];
@@ -1213,33 +1458,40 @@ export type ListReportTemplates200 = {
   templates: WordTemplate[];
 };
 
+export type DownloadWordTemplateSampleParams = {
+  /** Download the generic sample or the reusable YASH default layout. */
+  layout?: DownloadWordTemplateSampleLayout;
+};
+
+export type DownloadWordTemplateSampleLayout = typeof DownloadWordTemplateSampleLayout[keyof typeof DownloadWordTemplateSampleLayout];
+
+
+export const DownloadWordTemplateSampleLayout = {
+  generic: 'generic',
+  yash: 'yash',
+} as const;
+
 export type StartWordTemplateUpload200 = {
   id: string;
   uploadUrl: string;
 };
 
 export type ListKnowledgeParams = {
-/**
- * @maxLength 200
- */
-q?: string;
+  /** @maxLength 200 */
+  q?: string;
 };
 
 export type ListAccountAuditParams = {
-/**
- * @minimum 1
- * @maximum 100000
- */
-page?: number;
-action?: AccountAuditAction;
-/**
- * Inclusive UTC date
- */
-from?: string;
-/**
- * Inclusive UTC date
- */
-to?: string;
+  /**
+   * @minimum 1
+   * @maximum 100000
+   */
+  page?: number;
+  action?: AccountAuditAction;
+  /** Inclusive UTC date */
+  from?: string;
+  /** Inclusive UTC date */
+  to?: string;
 };
 
 export type ListLocalUsers200 = {

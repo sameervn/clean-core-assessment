@@ -2,7 +2,7 @@ import { pool } from "@workspace/db";
 export async function initializeReports(database: Pick<typeof pool, "query"> = pool) {
   await database.query(`
     CREATE TABLE IF NOT EXISTS cc_report_templates (
-      id uuid PRIMARY KEY, owner_id text NOT NULL REFERENCES cc_accounts(id) ON DELETE CASCADE,
+      id uuid PRIMARY KEY, owner_id text NOT NULL REFERENCES public.cc_accounts(id) ON DELETE CASCADE,
       name text NOT NULL, version integer NOT NULL DEFAULT 1, status text NOT NULL,
       object_path text NOT NULL, replace_id uuid, expected_version integer,
       previewed boolean NOT NULL DEFAULT false, active boolean NOT NULL DEFAULT false,

@@ -1,4 +1,4 @@
-import { FIELD_LABELS, TEXT_FIELDS, normalizeContent, type SharedDetail, type SharedEntity, type TextField } from "./shared-assessments";
+import { FIELD_LABELS, TEXT_FIELDS, normalizeContent, sourceSummary, type SharedDetail, type SharedEntity, type TextField } from "./shared-assessments";
 import { csvCell } from "./csv";
 import { saveBlob } from "./word-reports";
 
@@ -15,7 +15,7 @@ export function stateLabel(state: string) {
   return "Draft";
 }
 
-const sourceText = (e: SharedEntity) => (Array.isArray(e.sources) ? e.sources : []).map((s: any) => `${s?.repository ?? ""}@${s?.commit ?? ""}:${s?.path ?? ""}`).join("; ");
+const sourceText = (e: SharedEntity) => (Array.isArray(e.sources) ? e.sources : []).map(sourceSummary).join("; ");
 
 export function sharedRows(detail: SharedDetail) {
   return detail.entities.map(e => {
@@ -37,7 +37,7 @@ const COLUMNS: Array<[keyof Row & string, string]> = [
   ["kind", "Kind"], ["name", "Name"], ["version", "Version"], ["submitterId", "Submitter ID"], ["reviewerId", "Reviewer ID"],
   ["classification", FIELD_LABELS.classification], ["disposition", FIELD_LABELS.disposition], ["complexitySize", FIELD_LABELS.complexitySize],
   ...TEXT_FIELDS.map(f => [f, FIELD_LABELS[f]] as [any, string]),
-  ["sourceProvenance", "Mapped source (repository@commit:path)"], ["publishedEvidence", "Published evidence (immutable JSON)"],
+  ["sourceProvenance", "Source (repository@commit:path or upload:file with checksum)"], ["publishedEvidence", "Published evidence (immutable JSON)"],
 ];
 
 const base = (d: SharedDetail) => `shared-${String(d.assessment.name).replace(/[^\w.-]+/g, "_").slice(0, 50)}-current`;

@@ -6,13 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 export type SharedGithubFilesParams = {
-    /**
-     * @maxLength 200
-     */
+    /** @maxLength 200 */
     repository: string;
-    /**
-     * @maxLength 200
-     */
+    /** @maxLength 200 */
     ref: string;
 };
 //# sourceMappingURL=sharedGithubFilesParams.d.ts.map

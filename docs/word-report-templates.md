@@ -4,6 +4,34 @@ Word templates control **downloaded DOCX reports only**. Existing assessment scr
 JSON, CSV, Markdown, XLSX, PDF, PPTX and recovery backups are unchanged. No rendering
 step calls an LLM or third-party converter.
 
+## Default for all projects
+
+The supplied YASH 20-section layout is built in as `yash-clean-core` (v1).
+It is preselected for object/interface Word exports when no explicit company
+or personal default exists. Precedence is company default, personal default,
+then YASH. A user can still choose another available template for a download.
+Existing explicit defaults are not overwritten, and no cross-project template
+metadata or private files are copied.
+
+New approvals use the project company's previewed active layout, or the YASH
+layout when none exists. The sealed DOCX bytes and template identity/version
+are retained with the approval. Existing approved reports are never regenerated
+or relabelled after a template change.
+
+The original filled ZFILE100 example was converted to a reusable template:
+20 sections, tables, page settings, styling and embedded branding remain.
+Sample content, custom XML/properties and unused legacy VML settings/declarations
+were removed; the upload validator was not relaxed. Existing literal report
+fields populate classification, rationale, narrative, findings, recommendations,
+evidence, complexity and metadata. Functional details not collected as structured
+report fields explicitly say **Not provided**, rather than copying the example.
+This does not automatically infer business rules or SAP configuration from code.
+
+Preview or download the reusable layout under **Word report templates**; the
+Export Centre's company-template section also provides a fictional preview.
+The download route is `/api/report-templates/sample?layout=yash`; the generic
+authoring sample remains available without the query parameter.
+
 ## Authoring
 
 Open **Account → Word report templates**, download the built-in sample, edit in
@@ -33,8 +61,9 @@ Upload and name your template, download a fictional populated preview, inspect i
 in Word, then choose **Make default**. The preview is a download, not a claim of
 pixel-identical rendering in every Word-compatible viewer. Replacing a template
 clears its preview/default flags; preview and activate the new version. Deleting a
-default leaves no default. The built-in sample is always an explicit choice, never
-a hidden fallback for a failed selected template.
+default restores the next available default (company, personal, then YASH).
+The generic built-in sample is always an explicit choice. A failed selected
+custom template fails visibly; it is never silently replaced by YASH or the sample.
 
 ## Supported layout and safety limits
 

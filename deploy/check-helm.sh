@@ -7,6 +7,7 @@ for profile in dev prod aws; do
 done
 helm template check "$chart" -f "$chart/values-aws.yaml" \
   --set migration.enabled=true --set autoscaling.enabled=true \
+  --set config.CC_HTTP_LIMITER=redis-rest \
   --set ingress.enabled=true --set networkPolicy.enabled=true >/dev/null
 helm template check "$chart" --set secret.create=true --set existingSecret='' \
   --set-string secret.data.DATABASE_URL=placeholder >/dev/null
@@ -40,3 +41,26 @@ for pipeline in deploy/ci/github-actions.yml deploy/ci/azure-pipelines.yml; do
   grep -q -- '--set migration.enabled=true' "$pipeline"
 done
 echo "Both CI releases explicitly enable pre-install/pre-upgrade migrations"
+provisionRender=$(helm template check "$chart" -f "$chart/values-aws.yaml" \
+  --set migration.enabled=true --set provisioning.enabled=true \
+  --set provisioning.serviceAccountName=clean-core-provisioner)
+grep -q 'kind: CronJob' <<<"$provisionRender"
+grep -q 'command: \[node, dist/provision.mjs\]' <<<"$provisionRender"
+grep -q 'concurrencyPolicy: Forbid' <<<"$provisionRender"
+test "$(grep -c 'name: clean-core-provisioner' <<<"$provisionRender")" = 1
+test "$(grep -c 'name: CC_PROJECT_OWNER_ROLE' <<<"$provisionRender")" = 2
+test "$(grep -c 'name: CC_DB_CA_FILE' <<<"$provisionRender")" = 3
+for unsafe in \
+  'provisioning.existingSecret=clean-core-runtime' \
+  'provisioning.existingSecret=clean-core-migration' \
+  'provisioning.projectRuntimeRole=clean_core_project_owner' \
+  'provisioning.projectOwnerRole=other_owner' \
+  'config.CC_SCHEMA_BOOTSTRAP=true'; do
+  if helm template check "$chart" -f "$chart/values-aws.yaml" \
+    --set migration.enabled=true --set provisioning.enabled=true \
+    --set provisioning.serviceAccountName=clean-core-provisioner \
+    --set-string "$unsafe" >/dev/null 2>&1; then
+    echo "ERROR: unsafe provisioning settings accepted: $unsafe"; exit 1
+  fi
+done
+echo "Separate provisioner job, Secret isolation, role consistency and CA rendering passed"

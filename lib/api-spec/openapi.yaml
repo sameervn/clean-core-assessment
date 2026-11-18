@@ -11,6 +11,101 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /client-projects:
+    get:
+      operationId: listClientProjects
+      responses:
+        "200":
+          description: Assigned project catalog; platform Admins may also manage unassigned project metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientProjectCatalog" }
+  /client-projects/clients:
+    post:
+      operationId: createAssessmentClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientNameInput" }
+      responses:
+        "201":
+          description: Client created by an Admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentClient" }
+  /client-projects/projects:
+    post:
+      operationId: createClientProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientProjectInput" }
+      responses:
+        "201":
+          description: Project setup queued; creator assigned but workspace inaccessible until ready
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientProject" }
+  /client-projects/projects/{projectId}:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateClientProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientProjectInput" }
+      responses:
+        "200":
+          description: Project renamed or assigned to a client without changing content access
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientProject" }
+  /client-projects/projects/{projectId}/provisioning:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: changeProjectProvisioning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectProvisioningInput" }
+      responses:
+        "200":
+          description: Failed request retried or unfinished request cancelled by an Admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientProject" }
+        "409":
+          description: Request can no longer be retried or cancelled
+  /client-projects/projects/{projectId}/members:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getClientProjectMembers
+      responses:
+        "200":
+          description: Admin-only project membership management
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectMemberDirectory" }
+    put:
+      operationId: updateClientProjectMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectMemberInput" }
+      responses:
+        "200":
+          description: Membership changed; last active Admin cannot be removed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectMemberDirectory" }
   /shared-assessments/notifications/preferences:
     get:
       operationId: getReviewNotificationPreferences
@@ -206,16 +301,112 @@ paths:
     get:
       operationId: sharedGithubStatus
       responses:
-        "200": { description: Configuration and account connection state plus approved repository names; never credentials }
+        "200":
+          description: This account's saved GitHub repositories and connection health; never credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GithubConnectionStatus" }
+  /shared-assessments/github/check:
+    post:
+      operationId: checkSharedGithub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GithubConnectionCheckInput" }
+      responses:
+        "200":
+          description: Saved credential verified live for repository metadata and contents read access; no assessment or credential changed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GithubConnectionCheckResult" }
+        "400": { description: Invalid repository }
+        "401": { description: Sign-in required }
+        "403": { description: Insufficient application permission or GitHub access denied }
+        "404": { description: Repository not found or not accessible }
+        "409": { description: Saved credential missing or unreadable }
+        "413": { description: GitHub response exceeded the bounded response limit }
+        "429": { description: Connection check rate limited }
+        "503": { description: GitHub unavailable }
   /shared-assessments/github/connect:
     post:
       operationId: connectSharedGithub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GithubConnectionInput" }
       responses:
-        "200": { description: Enable this developer's use of configured read-only service access }
+        "200":
+          description: Repository access verified and encrypted credential saved for this account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GithubConnectionStatus" }
+        "400": { description: "Invalid repository, username or personal access token" }
+        "403": { description: "Permission denied, username mismatch or GitHub access denied" }
+        "503": { description: GitHub or credential encryption unavailable; existing connection unchanged }
     delete:
       operationId: disconnectSharedGithub
+      parameters:
+        - { name: repository, in: query, schema: { type: string, maxLength: 200 }, description: Saved owner/repository to remove; omit to remove all this account's connections }
       responses:
-        "200": { description: Disable future fetches for this account; retain immutable review evidence }
+        "200": { description: Delete saved encrypted credential and disable future fetches; retain immutable assessment evidence }
+  /shared-assessments/github/imports:
+    get:
+      operationId: listProjectSourceImports
+      responses:
+        "200":
+          description: Recent imports belonging to this account in the selected project
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProjectSourceImport" }
+    post:
+      operationId: previewProjectSourceImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectSourceSelection" }
+      responses:
+        "200":
+          description: Immutable preview of all editable assessment records in this project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectSourceImport" }
+  /shared-assessments/github/imports/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getProjectSourceImport
+      responses:
+        "200":
+          description: Authorized account-private progress and per-record outcomes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectSourceImport" }
+    post:
+      operationId: startProjectSourceImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectSourceConfirmation" }
+      responses:
+        "200":
+          description: Start a bounded background import, or return the existing run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectSourceImport" }
+    delete:
+      operationId: cancelProjectSourceImport
+      responses:
+        "200":
+          description: Cancel remaining work; committed snapshots are retained
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectSourceImport" }
   /shared-assessments/github/files:
     get:
       operationId: sharedGithubFiles
@@ -235,11 +426,28 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/SharedSourceMapping" }
       responses:
-        "200": { description: New draft revision with sealed source metadata and unaccepted deterministic proposal }
+        "200": { description: Atomic new draft revision with sealed source metadata; evaluation is a separate explicit action }
+  /shared-assessments/entities/{id}/source-upload:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: uploadSharedSource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SharedSourceUpload" }
+      responses:
+        "200": { description: Immutable uploaded source attached in a new Draft revision; existing approved exports unchanged }
+        "400": { description: "Invalid filename, encoding, empty file or non-text content" }
+        "403": { description: Only authorized editors with evidence and classify permission may upload source }
+        "409": { description: Record changed; no source revision saved }
+        "413": { description: Source exceeds 256000 bytes or request body limit }
   /shared-assessments/entities/{id}/source/{index}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       - { name: index, in: path, required: true, schema: { type: integer, minimum: 0, maximum: 9 } }
+      - { name: version, in: query, schema: { type: integer, minimum: 1 }, description: Reject with 409 if this entity revision is no longer current }
     get:
       operationId: readSharedSource
       responses:
@@ -379,6 +587,12 @@ paths:
   /report-templates/sample:
     get:
       operationId: downloadWordTemplateSample
+      parameters:
+        - name: layout
+          in: query
+          required: false
+          schema: { type: string, enum: [generic, yash] }
+          description: Download the generic sample or the reusable YASH default layout.
       responses:
         "200":
           description: Explicit built-in DOCX template
@@ -801,6 +1015,105 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    ClientNameInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+    ClientProjectInput:
+      type: object
+      additionalProperties: false
+      required: [clientId, name]
+      properties:
+        clientId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 120 }
+    ProjectMemberInput:
+      type: object
+      additionalProperties: false
+      required: [userId, enabled]
+      properties:
+        userId: { type: string, minLength: 1, maxLength: 100 }
+        enabled: { type: boolean }
+    AssessmentClient:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    ProjectProvisioningInput:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [retry, cancel] }
+    ClientProject:
+      type: object
+      required: [id, clientId, name, legacy, assigned, provisioningStatus, provisioningError]
+      properties:
+        id: { type: string, format: uuid }
+        clientId: { type: string, format: uuid }
+        name: { type: string }
+        legacy: { type: boolean }
+        assigned: { type: boolean }
+        provisioningStatus: { type: string, enum: [pending, failed, ready, cancelled] }
+        provisioningError: { type: ["string", "null"] }
+    ClientProjectCatalog:
+      type: object
+      required: [clients, projects]
+      properties:
+        clients: { type: array, items: { $ref: "#/components/schemas/AssessmentClient" } }
+        projects: { type: array, items: { $ref: "#/components/schemas/ClientProject" } }
+    ProjectDirectoryUser:
+      type: object
+      required: [id, username, role, assigned, active]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        role: { type: string, enum: [Admin, Developer, Reviewer] }
+        assigned: { type: boolean }
+        active: { type: boolean }
+    ProjectMemberDirectory:
+      type: object
+      required: [users]
+      properties:
+        users: { type: array, items: { $ref: "#/components/schemas/ProjectDirectoryUser" } }
+    GithubConnectionCheckInput:
+      type: object
+      additionalProperties: false
+      required: [repository]
+      properties:
+        repository: { type: string, minLength: 3, maxLength: 200 }
+    GithubConnectionCheckResult:
+      type: object
+      required: [repository, checkedAt]
+      properties:
+        repository: { type: string }
+        checkedAt: { type: string, format: date-time }
+    GithubConnectionInput:
+      type: object
+      additionalProperties: false
+      required: [repository, username, token]
+      properties:
+        repository: { type: string, minLength: 3, maxLength: 200, description: owner/repo or an HTTPS github.com repository URL }
+        username: { type: string, minLength: 1, maxLength: 39, description: GitHub account login; must match the token owner }
+        token: { type: string, minLength: 20, maxLength: 255, writeOnly: true, format: password, description: Fine-grained personal access token with Contents and Metadata read-only; not an account password }
+    GithubSavedConnection:
+      type: object
+      required: [repository, username, connectedAt, usable]
+      properties:
+        repository: { type: string }
+        username: { type: string }
+        connectedAt: { type: string, format: date-time }
+        usable: { type: boolean, description: Stored credential can be decrypted; live token expiry is checked on GitHub reads }
+    GithubConnectionStatus:
+      type: object
+      required: [configured, connected, repositories, connections]
+      properties:
+        configured: { type: boolean, description: Secure credential storage is available on this server }
+        connected: { type: boolean }
+        repositories: { type: array, items: { type: string }, description: This account's usable repository connections }
+        connections: { type: array, items: { $ref: "#/components/schemas/GithubSavedConnection" } }
     ReviewNotificationPage:
       type: object
       required: [notifications, nextCursor]
@@ -1009,15 +1322,78 @@ components:
       properties:
         expectedVersion: { type: integer, minimum: 1 }
         reviewerId: { type: string, minLength: 1, maxLength: 200 }
-    SharedSourceMapping:
+    SharedSourceUpload:
       type: object
       additionalProperties: false
-      required: [expectedVersion, repository, commit, path]
+      required: [expectedVersion, fileName, fileBase64]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        fileName: { type: string, minLength: 1, maxLength: 180 }
+        fileBase64: { type: string, minLength: 4, maxLength: 341336, description: Canonical base64 encoding of a UTF-8 .txt or .abap file, at most 256000 decoded bytes }
+    ProjectSourceSelection:
+      type: object
+      required: [repository, ref, folder]
+      properties:
+        repository: { type: string, minLength: 3, maxLength: 200 }
+        ref: { type: string, minLength: 1, maxLength: 200 }
+        folder: { type: string, maxLength: 500 }
+    ProjectSourceConfirmation:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed: { type: boolean, const: true }
+    ProjectSourceEntry:
+      type: object
+      required: [id, assessmentId, assessmentName, name, kind, version, state, paths, status, message]
+      properties:
+        id: { type: string }
+        assessmentId: { type: string }
+        assessmentName: { type: string }
+        name: { type: string }
+        kind: { type: string }
+        version: { type: integer }
+        state: { type: string }
+        paths:
+          type: array
+          items: { type: string }
+        status:
+          type: string
+          enum: [ready, deferred, ambiguous, unmatched, unchanged, imported, failed, cancelled]
+        message: { type: string }
+    ProjectSourceImport:
+      type: object
+      required: [id, repository, ref, folder, commit, status, entries, createdAt, message, limit]
+      properties:
+        id: { type: string }
+        repository: { type: string }
+        ref: { type: string }
+        folder: { type: string }
+        commit: { type: string }
+        status:
+          type: string
+          enum: [preview, running, completed, cancelled, interrupted]
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/ProjectSourceEntry" }
+        createdAt: { type: string }
+        message: { type: string }
+        limit: { type: integer }
+    SharedSourceMapping:
+      type: object
+      description: Provide exactly one of path or paths. All selected files are attached atomically in one new draft revision.
+      additionalProperties: false
+      required: [expectedVersion, repository, commit]
       properties:
         expectedVersion: { type: integer, minimum: 1 }
         repository: { type: string, maxLength: 200 }
         commit: { type: string, pattern: "^[0-9a-f]{40}$" }
         path: { type: string, minLength: 1, maxLength: 1000 }
+        paths:
+          type: array
+          minItems: 1
+          maxItems: 10
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 1000 }
     CompanyTemplateUpload:
       type: object
       required: [name, file]

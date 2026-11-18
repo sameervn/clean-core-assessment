@@ -13,13 +13,9 @@ export type ListSharedApprovalsParams = {
      * @maximum 100
      */
     limit?: number;
-    /**
-     * @maxLength 4096
-     */
+    /** @maxLength 4096 */
     cursor?: string;
-    /**
-     * @maxLength 200
-     */
+    /** @maxLength 200 */
     search?: string;
     kind?: ListSharedApprovalsKind;
     showSuperseded?: ListSharedApprovalsShowSuperseded;

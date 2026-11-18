@@ -2,15 +2,11 @@ import { createHash } from "node:crypto";
 import { AiError } from "../assessment-ai";
 
 const repoPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-export function githubConfig(env: Record<string, string | undefined> = process.env) {
-  const repositories = (env.CC_GITHUB_REPOSITORIES ?? "").split(",").map(s => s.trim()).filter(Boolean);
-  if (!env.CC_GITHUB_TOKEN || !repositories.length || repositories.length > 100 || repositories.some(r => !repoPattern.test(r))) return null;
-  return { token: env.CC_GITHUB_TOKEN, repositories };
+export interface GithubConfig { token: string; repositories: string[] }
+export function allowedRepository(repository: string, config: GithubConfig) {
+  if (!repoPattern.test(repository) || !config.repositories.includes(repository)) throw new AiError(403, "Repository is not in this account's connected repository allowlist.");
 }
-export function allowedRepository(repository: string, config: NonNullable<ReturnType<typeof githubConfig>>) {
-  if (!repoPattern.test(repository) || !config.repositories.includes(repository)) throw new AiError(403, "Repository is not in the administrator-approved allowlist.");
-}
-export async function githubJson(path: string, config: NonNullable<ReturnType<typeof githubConfig>>, request: typeof fetch = fetch) {
+export async function githubJson(path: string, config: GithubConfig, request: typeof fetch = fetch) {
   let response: Response;
   try {
     response = await request(`https://api.github.com${path}`, {
@@ -36,17 +32,27 @@ export async function githubJson(path: string, config: NonNullable<ReturnType<ty
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); }
   catch { throw new AiError(503, "GitHub returned malformed data."); }
 }
-export async function files(repository: string, ref: string, config: NonNullable<ReturnType<typeof githubConfig>>, request: typeof fetch = fetch) {
+/** Verify live read access without fetching source, enumerating a recursive tree, or changing saved data. */
+export async function checkGithubRepository(repository: string, config: GithubConfig, request: typeof fetch = fetch) {
+  allowedRepository(repository, config);
+  const metadata = await githubJson(`/repos/${repository}`, config, request);
+  if (typeof metadata?.full_name !== "string" || metadata.full_name.toLowerCase() !== repository.toLowerCase()) {
+    throw new AiError(403, "GitHub did not confirm access to this exact repository.");
+  }
+  // Public metadata alone is insufficient: exercise the Contents read permission.
+  await githubJson(`/repos/${repository}/contents/`, config, request);
+}
+export async function files(repository: string, ref: string, config: GithubConfig, request: typeof fetch = fetch, includeOversized = false) {
   allowedRepository(repository, config);
   const commit = await githubJson(`/repos/${repository}/commits/${encodeURIComponent(ref)}`, config, request);
   if (!/^[a-f0-9]{40}$/.test(commit?.sha) || !/^[a-f0-9]{40}$/.test(commit?.commit?.tree?.sha)) throw new AiError(503, "GitHub returned invalid commit provenance.");
   const tree = await githubJson(`/repos/${repository}/git/trees/${commit.commit.tree.sha}?recursive=1`, config, request);
   if (tree.truncated || !Array.isArray(tree.tree) || tree.tree.length > 10_000) throw new AiError(413, "Repository tree is too large or truncated. Use a smaller repository; incomplete listings are never presented as complete.");
-  return { commit: commit.sha, files: tree.tree.filter((f: any) => f.type === "blob" && f.mode !== "120000" && f.size <= 256_000 &&
-    typeof f.path === "string" && /\.(abap|asprog|asclas|asintf|acds|ddls|xml|json|txt)$/i.test(f.path) && /^[a-f0-9]{40}$/.test(f.sha))
+  return { commit: commit.sha, files: tree.tree.filter((f: any) => f.type === "blob" && f.mode !== "120000" && Number.isSafeInteger(f.size) && f.size >= 0 && (includeOversized || f.size <= 256_000) &&
+    typeof f.path === "string" && /\.(abap|asprog|asclas|asintf|acds|ddls|asddls|asbdef|asdcls|srvdsrv|xml|json|txt)$/i.test(f.path) && /^[a-f0-9]{40}$/.test(f.sha))
     .map((f: any) => ({ path: f.path, sha: f.sha, size: f.size })) as Array<{ path: string; sha: string; size: number }> };
 }
-export async function source(repository: string, commit: string, path: string, config: NonNullable<ReturnType<typeof githubConfig>>, request: typeof fetch = fetch) {
+export async function source(repository: string, commit: string, path: string, config: GithubConfig, request: typeof fetch = fetch) {
   if (!/^[a-f0-9]{40}$/.test(commit)) throw new AiError(400, "An immutable commit ID is required.");
   const listing = await files(repository, commit, config, request);
   if (listing.commit !== commit) throw new AiError(409, "GitHub commit changed unexpectedly.");

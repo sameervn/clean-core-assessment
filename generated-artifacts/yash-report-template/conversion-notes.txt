@@ -1,0 +1,7 @@
+Retained the 20 numbered sections, original table structure (with sample-only spare data rows removed), styles, theme, numbering and embedded PNG branding.
+Replaced ZFILE100 sample data with supported literal placeholders or explicit Not provided text.
+Removed unsupported custom XML and custom properties and their references. No report validator restrictions were relaxed.
+Uncollected functional fields are explicitly Not provided; narrative, classification, recommendations, findings, complexity, evidence and accepted AI explanations use the existing report model.
+Original SHA-256: fb371652360e7cb8251b0c55070806fba808b3581ee2e393c30c91cf97575335
+Reusable template SHA-256: a112cf32839bdd9d01f4445aeb58c4bb04e2379de7580084647f2f8f577e729c
+Previews contain fictional data only.

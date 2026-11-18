@@ -1,8 +1,6 @@
 import "@workspace/db/runtime-env";
 import { pool } from "@workspace/db";
-import { initializeKnowledge } from "../src/knowledge/schema";
-import { initializeReports } from "../src/reports/schema";
-import { initializeCollaboration } from "../src/collaboration/schema";
+import { initializeProjects } from "../src/projects/service";
 
 // Additive and idempotent; intentionally separate from the app identity.
 // Acquire a session-level lock before all schema steps. No force-push.
@@ -29,10 +27,8 @@ try {
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
-  await initializeKnowledge(client);
-  await initializeReports(client);
-  await initializeCollaboration(client);
   await client.query("COMMIT");
+  await initializeProjects();
   process.stdout.write("Client schema migration completed\n");
 } catch {
   await client.query("ROLLBACK").catch(() => undefined);

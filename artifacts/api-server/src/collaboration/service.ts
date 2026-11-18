@@ -6,8 +6,10 @@ import { AiError } from "../assessment-ai";
 import { contentSchema, transition, type Content } from "./contract";
 import { readObject, removeObject } from "../knowledge/storage";
 import { processWord } from "../reports/process";
+import { BUILTIN_TEMPLATE_ID, BUILTIN_TEMPLATE_NAME, BUILTIN_TEMPLATE_VERSION } from "../reports/contract.mjs";
 import { reportModel } from "./reports";
 import { storePrivate } from "./files";
+import { lockProjectMembership } from "../projects/membership";
 
 type Database = Pick<PoolClient, "query">;
 export async function transaction<T>(fn: (c: PoolClient) => Promise<T>) {
@@ -17,6 +19,7 @@ export async function transaction<T>(fn: (c: PoolClient) => Promise<T>) {
   finally { c.release(); }
 }
 export async function current(c: Database, identity: Identity) {
+  await lockProjectMembership(c, identity.user.id);
   // Lock account/session against permission revocation for the duration of writes.
   const r = (await c.query(`SELECT a.* FROM cc_accounts a JOIN cc_account_sessions s ON s.user_id=a.id
     WHERE a.id=$1 AND s.token_hash=$2 AND s.expires_at>now() AND a.active AND NOT a.must_change_password
@@ -109,14 +112,15 @@ export async function action(identity: Identity, id: string, body: { expectedVer
       const template = (await c.query(`SELECT t.id,t.version,v.object_path FROM cc_company_templates t
         JOIN cc_company_template_versions v ON v.template_id=t.id AND v.version=t.version
         WHERE t.active AND t.previewed FOR SHARE OF t`, [])).rows[0];
-      if (!template) throw new AiError(409, "An administrator must preview and select a company DOCX default before approval.");
       const snapshot = { ...updated, system: assessment.system, targetRelease: assessment.target_release,
-        approvedBy: user.username, approvedAt: new Date().toISOString() };
-      const report = await processWord({ mode: "render", bytes: (await readObject(template.object_path)).toString("base64"), entities: [reportModel(snapshot)] });
+        approvedBy: user.username, approvedAt: new Date().toISOString(),
+        ...(!template ? { reportTemplate: { id: BUILTIN_TEMPLATE_ID, name: BUILTIN_TEMPLATE_NAME, version: BUILTIN_TEMPLATE_VERSION } } : {}) };
+      const report = await processWord({ mode: template ? "render" : "builtin-render",
+        bytes: template ? (await readObject(template.object_path)).toString("base64") : undefined, entities: [reportModel(snapshot)] });
       reportPath = await storePrivate("approved-reports", report);
       await c.query(`INSERT INTO cc_assessment_approvals(id,entity_id,version,approver_id,snapshot,template_id,template_version,template_path,report_path)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [randomUUID(), id, updated.version, user.id, JSON.stringify(snapshot),
-        template.id, template.version, template.object_path, reportPath]);
+        template?.id ?? null, template?.version ?? BUILTIN_TEMPLATE_VERSION, template?.object_path ?? null, reportPath]);
     }
     await c.query("INSERT INTO cc_assessment_actions(entity_id,actor_id,request_id,request_hash,result) VALUES($1,$2,$3,$4,$5)",
       [id, user.id, body.requestId, hash, JSON.stringify(updated)]);

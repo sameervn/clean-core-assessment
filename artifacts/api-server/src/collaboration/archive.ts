@@ -40,7 +40,7 @@ export async function approvalPage(c: Pick<PoolClient, "query">, userId: string,
   const rows = (await c.query(`SELECT p.id,p.entity_id,p.version,
     to_char(p.approved_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS approved_at,
     e.kind,e.name,e.assessment_id,a.name AS assessment_name,u.username AS approver,
-    p.template_version,v.name AS template_name,(e.state<>'Approved' OR e.version<>p.version) AS superseded
+    p.template_version,coalesce(v.name,p.snapshot->'reportTemplate'->>'name') AS template_name,(e.state<>'Approved' OR e.version<>p.version) AS superseded
     FROM cc_assessment_approvals p JOIN cc_assessment_entities e ON e.id=p.entity_id
     JOIN cc_shared_assessments a ON a.id=e.assessment_id
     JOIN cc_assessment_members m ON m.assessment_id=a.id JOIN cc_accounts u ON u.id=p.approver_id

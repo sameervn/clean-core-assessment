@@ -1,4 +1,7 @@
 export const fields = ["entity_id", "entity_kind", "entity_name", "entity_type", "package", "owner", "source_system", "target_system", "target_release", "classification", "complexity", "severity", "rationale", "mitigation", "evidence", "notes", "ai_explanations"];
+export const BUILTIN_TEMPLATE_ID = "yash-clean-core";
+export const BUILTIN_TEMPLATE_NAME = "YASH Clean Core — 20-section assessment";
+export const BUILTIN_TEMPLATE_VERSION = 1;
 export const rowFields = { findings: ["text", "severity"], recommendations: ["text"] };
 export const limits = [
   "DOCX only: 4 MB compressed, 20 MB expanded, 300 entries, 2 MB per XML part, 1,000 tags.",

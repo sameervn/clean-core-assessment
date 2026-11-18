@@ -7,14 +7,14 @@
  */
 
 export type GetWorkspaceReviewParams = {
-/**
- * @minLength 1
- * @maxLength 200
- */
-importKey: string;
-/**
- * @minLength 1
- * @maxLength 1000
- */
-key: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  importKey: string;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   */
+  key: string;
 };

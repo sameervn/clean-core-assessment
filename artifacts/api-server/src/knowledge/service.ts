@@ -5,6 +5,7 @@ import { publicUser, type DbUser } from "../auth/service";
 import { objectPath, uploadUrl, readObject, saveSealed, removeObject } from "./storage";
 import { parseDocument } from "./parser";
 import type { Identity } from "../auth/middleware";
+import { lockProjectMembership } from "../projects/membership";
 
 export const LIBRARY_LOCK = 614072;
 export function documentView(row: any) {
@@ -15,6 +16,7 @@ export function canManage(user: Identity["user"], row: any) {
   return user.permissions.includes("knowledge.manage-all") || (user.permissions.includes("knowledge.upload") && String(user.id) === row.owner_id);
 }
 export async function freshUser(identity: Identity, client: Pick<PoolClient, "query"> = pool) {
+  await lockProjectMembership(client, identity.user.id);
   const result = await client.query(`SELECT a.* FROM cc_accounts a JOIN cc_account_sessions s ON s.user_id=a.id
     WHERE a.id=$1 AND s.token_hash=$2 AND s.expires_at>now() AND a.active=true AND a.must_change_password=false`, [identity.user.id, identity.tokenHash]);
   if (!result.rows[0]) throw new AiError(401, "Session expired. Sign in again.");

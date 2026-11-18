@@ -85,6 +85,18 @@ migration:
   databaseSecretKey: DATABASE_URL
   serviceAccountName: ""
   activeDeadlineSeconds: 180
+  projectOwnerRole: clean_core_project_owner
+  projectRuntimeRole: clean_core_app
+# Operator-only identity. Never mount this Secret on the API Deployment.
+provisioning:
+  enabled: false
+  schedule: "* * * * *"
+  existingSecret: clean-core-provisioner
+  databaseSecretKey: DATABASE_URL
+  serviceAccountName: ""
+  activeDeadlineSeconds: 180
+  projectOwnerRole: clean_core_project_owner
+  projectRuntimeRole: clean_core_app
 networkPolicy:
   enabled: false
   ingress: []

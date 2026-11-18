@@ -1,10 +1,132 @@
 import type { QueryKey, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AccountAuditPage, AiLimiterHealth, ApprovalPage, ApprovedDownload, AssessmentAiStatus, AssessmentContext, AssessmentExplanation, AssessmentInput, AssessmentResult, CompanyTemplateUpload, DemoResult, EvidenceRecord, EvidenceUpload, GetAiLimiterHealth503, GetSharedAssessment200, GetWorkspaceReviewParams, HealthStatus, KnowledgeAiConsent, KnowledgeAiRequest, KnowledgeCleanupInput, KnowledgeCleanupReport, KnowledgeCleanupStatus, KnowledgeDetail, KnowledgeDocument, KnowledgeList, KnowledgePreview, KnowledgeUpload, KnowledgeUploadTicket, KnowledgeVersion, ListAccountAuditParams, ListKnowledgeParams, ListLocalUsers200, ListReportTemplates200, ListReviewNotificationsParams, ListSharedApprovalsParams, ListSharedAssessments200, LocalSession, LocalUserEnvelope, LoginInput, PasswordChangeInput, PasswordResetInput, PermissionCheckInput, PublishSharedAssessment200, ReviewNotificationPage, ReviewNotificationPreference, SharedAction, SharedAssignment, SharedEdit, SharedEntityEnvelope, SharedGithubFilesParams, SharedMembership, SharedPublish, SharedSourceMapping, SharedVersion, StartWordTemplateUpload200, UserCreationInput, UserUpdateInput, WordDeleteInput, WordPreviewInput, WordRenderInput, WordTemplate, WordUpdateInput, WordUploadInput, WorkspaceReviewContext, WorkspaceReviewInput, WorkspaceReviewResult } from './api.schemas';
+import type { AccountAuditPage, AiLimiterHealth, ApprovalPage, ApprovedDownload, AssessmentAiStatus, AssessmentClient, AssessmentContext, AssessmentExplanation, AssessmentInput, AssessmentResult, ClientNameInput, ClientProject, ClientProjectCatalog, ClientProjectInput, CompanyTemplateUpload, DemoResult, DisconnectSharedGithubParams, DownloadWordTemplateSampleParams, EvidenceRecord, EvidenceUpload, GetAiLimiterHealth503, GetSharedAssessment200, GetWorkspaceReviewParams, GithubConnectionCheckInput, GithubConnectionCheckResult, GithubConnectionInput, GithubConnectionStatus, HealthStatus, KnowledgeAiConsent, KnowledgeAiRequest, KnowledgeCleanupInput, KnowledgeCleanupReport, KnowledgeCleanupStatus, KnowledgeDetail, KnowledgeDocument, KnowledgeList, KnowledgePreview, KnowledgeUpload, KnowledgeUploadTicket, KnowledgeVersion, ListAccountAuditParams, ListKnowledgeParams, ListLocalUsers200, ListReportTemplates200, ListReviewNotificationsParams, ListSharedApprovalsParams, ListSharedAssessments200, LocalSession, LocalUserEnvelope, LoginInput, PasswordChangeInput, PasswordResetInput, PermissionCheckInput, ProjectMemberDirectory, ProjectMemberInput, ProjectProvisioningInput, ProjectSourceConfirmation, ProjectSourceImport, ProjectSourceSelection, PublishSharedAssessment200, ReadSharedSourceParams, ReviewNotificationPage, ReviewNotificationPreference, SharedAction, SharedAssignment, SharedEdit, SharedEntityEnvelope, SharedGithubFilesParams, SharedMembership, SharedPublish, SharedSourceMapping, SharedSourceUpload, SharedVersion, StartWordTemplateUpload200, UserCreationInput, UserUpdateInput, WordDeleteInput, WordPreviewInput, WordRenderInput, WordTemplate, WordUpdateInput, WordUploadInput, WorkspaceReviewContext, WorkspaceReviewInput, WorkspaceReviewResult } from './api.schemas';
 import { customFetch } from '../custom-fetch';
 import type { ErrorType, BodyType } from '../custom-fetch';
 type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+export declare const getListClientProjectsUrl: () => string;
+export declare const listClientProjects: (options?: Parameters<typeof customFetch>[1]) => Promise<ClientProjectCatalog>;
+export declare const getListClientProjectsQueryKey: () => readonly ["/api/client-projects"];
+export declare const getListClientProjectsQueryOptions: <TData = Awaited<ReturnType<typeof listClientProjects>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof listClientProjects>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof listClientProjects>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type ListClientProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listClientProjects>>>;
+export type ListClientProjectsQueryError = ErrorType<unknown>;
+export declare function useListClientProjects<TData = Awaited<ReturnType<typeof listClientProjects>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof listClientProjects>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+export declare const getCreateAssessmentClientUrl: () => string;
+export declare const createAssessmentClient: (clientNameInput: ClientNameInput, options?: Parameters<typeof customFetch>[1]) => Promise<AssessmentClient>;
+export declare const getCreateAssessmentClientMutationKey: () => readonly ["createAssessmentClient"];
+export declare const getCreateAssessmentClientMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAssessmentClient>>, TError, CreateAssessmentClientMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof createAssessmentClient>>, TError, CreateAssessmentClientMutationVariables, TContext>;
+export type CreateAssessmentClientMutationResult = NonNullable<Awaited<ReturnType<typeof createAssessmentClient>>>;
+export type CreateAssessmentClientMutationBody = BodyType<ClientNameInput>;
+export type CreateAssessmentClientMutationError = ErrorType<unknown>;
+export type CreateAssessmentClientMutationVariables = {
+    data: BodyType<ClientNameInput>;
+};
+export declare const useCreateAssessmentClient: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAssessmentClient>>, TError, CreateAssessmentClientMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof createAssessmentClient>>, TError, CreateAssessmentClientMutationVariables, TContext>;
+export declare const getCreateClientProjectUrl: () => string;
+export declare const createClientProject: (clientProjectInput: ClientProjectInput, options?: Parameters<typeof customFetch>[1]) => Promise<ClientProject>;
+export declare const getCreateClientProjectMutationKey: () => readonly ["createClientProject"];
+export declare const getCreateClientProjectMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof createClientProject>>, TError, CreateClientProjectMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof createClientProject>>, TError, CreateClientProjectMutationVariables, TContext>;
+export type CreateClientProjectMutationResult = NonNullable<Awaited<ReturnType<typeof createClientProject>>>;
+export type CreateClientProjectMutationBody = BodyType<ClientProjectInput>;
+export type CreateClientProjectMutationError = ErrorType<unknown>;
+export type CreateClientProjectMutationVariables = {
+    data: BodyType<ClientProjectInput>;
+};
+export declare const useCreateClientProject: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof createClientProject>>, TError, CreateClientProjectMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof createClientProject>>, TError, CreateClientProjectMutationVariables, TContext>;
+export declare const getUpdateClientProjectUrl: (projectId: string) => string;
+export declare const updateClientProject: (projectId: string, clientProjectInput: ClientProjectInput, options?: Parameters<typeof customFetch>[1]) => Promise<ClientProject>;
+export declare const getUpdateClientProjectMutationKey: () => readonly ["updateClientProject"];
+export declare const getUpdateClientProjectMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateClientProject>>, TError, UpdateClientProjectMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof updateClientProject>>, TError, UpdateClientProjectMutationVariables, TContext>;
+export type UpdateClientProjectMutationResult = NonNullable<Awaited<ReturnType<typeof updateClientProject>>>;
+export type UpdateClientProjectMutationBody = BodyType<ClientProjectInput>;
+export type UpdateClientProjectMutationError = ErrorType<unknown>;
+export type UpdateClientProjectMutationVariables = {
+    projectId: string;
+    data: BodyType<ClientProjectInput>;
+};
+export declare const useUpdateClientProject: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateClientProject>>, TError, UpdateClientProjectMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof updateClientProject>>, TError, UpdateClientProjectMutationVariables, TContext>;
+export declare const getChangeProjectProvisioningUrl: (projectId: string) => string;
+export declare const changeProjectProvisioning: (projectId: string, projectProvisioningInput: ProjectProvisioningInput, options?: Parameters<typeof customFetch>[1]) => Promise<ClientProject>;
+export declare const getChangeProjectProvisioningMutationKey: () => readonly ["changeProjectProvisioning"];
+export declare const getChangeProjectProvisioningMutationOptions: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof changeProjectProvisioning>>, TError, ChangeProjectProvisioningMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof changeProjectProvisioning>>, TError, ChangeProjectProvisioningMutationVariables, TContext>;
+export type ChangeProjectProvisioningMutationResult = NonNullable<Awaited<ReturnType<typeof changeProjectProvisioning>>>;
+export type ChangeProjectProvisioningMutationBody = BodyType<ProjectProvisioningInput>;
+export type ChangeProjectProvisioningMutationError = ErrorType<void>;
+export type ChangeProjectProvisioningMutationVariables = {
+    projectId: string;
+    data: BodyType<ProjectProvisioningInput>;
+};
+export declare const useChangeProjectProvisioning: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof changeProjectProvisioning>>, TError, ChangeProjectProvisioningMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof changeProjectProvisioning>>, TError, ChangeProjectProvisioningMutationVariables, TContext>;
+export declare const getGetClientProjectMembersUrl: (projectId: string) => string;
+export declare const getClientProjectMembers: (projectId: string, options?: Parameters<typeof customFetch>[1]) => Promise<ProjectMemberDirectory>;
+export declare const getGetClientProjectMembersQueryKey: (projectId: string) => readonly [`/api/client-projects/projects/${string}/members`];
+export declare const getGetClientProjectMembersQueryOptions: <TData = Awaited<ReturnType<typeof getClientProjectMembers>>, TError = ErrorType<unknown>>(projectId: string, options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getClientProjectMembers>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof getClientProjectMembers>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type GetClientProjectMembersQueryResult = NonNullable<Awaited<ReturnType<typeof getClientProjectMembers>>>;
+export type GetClientProjectMembersQueryError = ErrorType<unknown>;
+export declare function useGetClientProjectMembers<TData = Awaited<ReturnType<typeof getClientProjectMembers>>, TError = ErrorType<unknown>>(projectId: string, options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getClientProjectMembers>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+export declare const getUpdateClientProjectMemberUrl: (projectId: string) => string;
+export declare const updateClientProjectMember: (projectId: string, projectMemberInput: ProjectMemberInput, options?: Parameters<typeof customFetch>[1]) => Promise<ProjectMemberDirectory>;
+export declare const getUpdateClientProjectMemberMutationKey: () => readonly ["updateClientProjectMember"];
+export declare const getUpdateClientProjectMemberMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateClientProjectMember>>, TError, UpdateClientProjectMemberMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof updateClientProjectMember>>, TError, UpdateClientProjectMemberMutationVariables, TContext>;
+export type UpdateClientProjectMemberMutationResult = NonNullable<Awaited<ReturnType<typeof updateClientProjectMember>>>;
+export type UpdateClientProjectMemberMutationBody = BodyType<ProjectMemberInput>;
+export type UpdateClientProjectMemberMutationError = ErrorType<unknown>;
+export type UpdateClientProjectMemberMutationVariables = {
+    projectId: string;
+    data: BodyType<ProjectMemberInput>;
+};
+export declare const useUpdateClientProjectMember: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateClientProjectMember>>, TError, UpdateClientProjectMemberMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof updateClientProjectMember>>, TError, UpdateClientProjectMemberMutationVariables, TContext>;
 export declare const getGetReviewNotificationPreferencesUrl: () => string;
 export declare const getReviewNotificationPreferences: (options?: Parameters<typeof customFetch>[1]) => Promise<ReviewNotificationPreference>;
 export declare const getGetReviewNotificationPreferencesQueryKey: () => readonly ["/api/shared-assessments/notifications/preferences"];
@@ -247,7 +369,7 @@ export declare const useAssignSharedReviewer: <TError = ErrorType<unknown>, TCon
     request?: SecondParameter<typeof customFetch>;
 }) => UseMutationResult<Awaited<ReturnType<typeof assignSharedReviewer>>, TError, AssignSharedReviewerMutationVariables, TContext>;
 export declare const getSharedGithubStatusUrl: () => string;
-export declare const sharedGithubStatus: (options?: Parameters<typeof customFetch>[1]) => Promise<void>;
+export declare const sharedGithubStatus: (options?: Parameters<typeof customFetch>[1]) => Promise<GithubConnectionStatus>;
 export declare const getSharedGithubStatusQueryKey: () => readonly ["/api/shared-assessments/github/status"];
 export declare const getSharedGithubStatusQueryOptions: <TData = Awaited<ReturnType<typeof sharedGithubStatus>>, TError = ErrorType<unknown>>(options?: {
     query?: UseQueryOptions<Awaited<ReturnType<typeof sharedGithubStatus>>, TError, TData>;
@@ -263,32 +385,141 @@ export declare function useSharedGithubStatus<TData = Awaited<ReturnType<typeof 
 }): UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
 };
+export declare const getCheckSharedGithubUrl: () => string;
+export declare const checkSharedGithub: (githubConnectionCheckInput: GithubConnectionCheckInput, options?: Parameters<typeof customFetch>[1]) => Promise<GithubConnectionCheckResult>;
+export declare const getCheckSharedGithubMutationKey: () => readonly ["checkSharedGithub"];
+export declare const getCheckSharedGithubMutationOptions: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof checkSharedGithub>>, TError, CheckSharedGithubMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof checkSharedGithub>>, TError, CheckSharedGithubMutationVariables, TContext>;
+export type CheckSharedGithubMutationResult = NonNullable<Awaited<ReturnType<typeof checkSharedGithub>>>;
+export type CheckSharedGithubMutationBody = BodyType<GithubConnectionCheckInput>;
+export type CheckSharedGithubMutationError = ErrorType<void>;
+export type CheckSharedGithubMutationVariables = {
+    data: BodyType<GithubConnectionCheckInput>;
+};
+export declare const useCheckSharedGithub: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof checkSharedGithub>>, TError, CheckSharedGithubMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof checkSharedGithub>>, TError, CheckSharedGithubMutationVariables, TContext>;
 export declare const getConnectSharedGithubUrl: () => string;
-export declare const connectSharedGithub: (options?: Parameters<typeof customFetch>[1]) => Promise<void>;
+export declare const connectSharedGithub: (githubConnectionInput: GithubConnectionInput, options?: Parameters<typeof customFetch>[1]) => Promise<GithubConnectionStatus>;
 export declare const getConnectSharedGithubMutationKey: () => readonly ["connectSharedGithub"];
-export declare const getConnectSharedGithubMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof connectSharedGithub>>, TError, void, TContext>;
+export declare const getConnectSharedGithubMutationOptions: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof connectSharedGithub>>, TError, ConnectSharedGithubMutationVariables, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof connectSharedGithub>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof connectSharedGithub>>, TError, ConnectSharedGithubMutationVariables, TContext>;
 export type ConnectSharedGithubMutationResult = NonNullable<Awaited<ReturnType<typeof connectSharedGithub>>>;
-export type ConnectSharedGithubMutationError = ErrorType<unknown>;
-export declare const useConnectSharedGithub: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof connectSharedGithub>>, TError, void, TContext>;
+export type ConnectSharedGithubMutationBody = BodyType<GithubConnectionInput>;
+export type ConnectSharedGithubMutationError = ErrorType<void>;
+export type ConnectSharedGithubMutationVariables = {
+    data: BodyType<GithubConnectionInput>;
+};
+export declare const useConnectSharedGithub: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof connectSharedGithub>>, TError, ConnectSharedGithubMutationVariables, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationResult<Awaited<ReturnType<typeof connectSharedGithub>>, TError, void, TContext>;
-export declare const getDisconnectSharedGithubUrl: () => string;
-export declare const disconnectSharedGithub: (options?: Parameters<typeof customFetch>[1]) => Promise<void>;
+}) => UseMutationResult<Awaited<ReturnType<typeof connectSharedGithub>>, TError, ConnectSharedGithubMutationVariables, TContext>;
+export declare const getDisconnectSharedGithubUrl: (params?: DisconnectSharedGithubParams) => string;
+export declare const disconnectSharedGithub: (params?: DisconnectSharedGithubParams, options?: Parameters<typeof customFetch>[1]) => Promise<void>;
 export declare const getDisconnectSharedGithubMutationKey: () => readonly ["disconnectSharedGithub"];
 export declare const getDisconnectSharedGithubMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, DisconnectSharedGithubMutationVariables, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, DisconnectSharedGithubMutationVariables, TContext>;
 export type DisconnectSharedGithubMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectSharedGithub>>>;
 export type DisconnectSharedGithubMutationError = ErrorType<unknown>;
+export type DisconnectSharedGithubMutationVariables = {
+    params?: DisconnectSharedGithubParams;
+};
 export declare const useDisconnectSharedGithub: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, DisconnectSharedGithubMutationVariables, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationResult<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, void, TContext>;
+}) => UseMutationResult<Awaited<ReturnType<typeof disconnectSharedGithub>>, TError, DisconnectSharedGithubMutationVariables, TContext>;
+export declare const getListProjectSourceImportsUrl: () => string;
+export declare const listProjectSourceImports: (options?: Parameters<typeof customFetch>[1]) => Promise<ProjectSourceImport[]>;
+export declare const getListProjectSourceImportsQueryKey: () => readonly ["/api/shared-assessments/github/imports"];
+export declare const getListProjectSourceImportsQueryOptions: <TData = Awaited<ReturnType<typeof listProjectSourceImports>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof listProjectSourceImports>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof listProjectSourceImports>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type ListProjectSourceImportsQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectSourceImports>>>;
+export type ListProjectSourceImportsQueryError = ErrorType<unknown>;
+export declare function useListProjectSourceImports<TData = Awaited<ReturnType<typeof listProjectSourceImports>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof listProjectSourceImports>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+export declare const getPreviewProjectSourceImportUrl: () => string;
+export declare const previewProjectSourceImport: (projectSourceSelection: ProjectSourceSelection, options?: Parameters<typeof customFetch>[1]) => Promise<ProjectSourceImport>;
+export declare const getPreviewProjectSourceImportMutationKey: () => readonly ["previewProjectSourceImport"];
+export declare const getPreviewProjectSourceImportMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof previewProjectSourceImport>>, TError, PreviewProjectSourceImportMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof previewProjectSourceImport>>, TError, PreviewProjectSourceImportMutationVariables, TContext>;
+export type PreviewProjectSourceImportMutationResult = NonNullable<Awaited<ReturnType<typeof previewProjectSourceImport>>>;
+export type PreviewProjectSourceImportMutationBody = BodyType<ProjectSourceSelection>;
+export type PreviewProjectSourceImportMutationError = ErrorType<unknown>;
+export type PreviewProjectSourceImportMutationVariables = {
+    data: BodyType<ProjectSourceSelection>;
+};
+export declare const usePreviewProjectSourceImport: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof previewProjectSourceImport>>, TError, PreviewProjectSourceImportMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof previewProjectSourceImport>>, TError, PreviewProjectSourceImportMutationVariables, TContext>;
+export declare const getGetProjectSourceImportUrl: (id: string) => string;
+export declare const getProjectSourceImport: (id: string, options?: Parameters<typeof customFetch>[1]) => Promise<ProjectSourceImport>;
+export declare const getGetProjectSourceImportQueryKey: (id: string) => readonly [`/api/shared-assessments/github/imports/${string}`];
+export declare const getGetProjectSourceImportQueryOptions: <TData = Awaited<ReturnType<typeof getProjectSourceImport>>, TError = ErrorType<unknown>>(id: string, options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getProjectSourceImport>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof getProjectSourceImport>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type GetProjectSourceImportQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectSourceImport>>>;
+export type GetProjectSourceImportQueryError = ErrorType<unknown>;
+export declare function useGetProjectSourceImport<TData = Awaited<ReturnType<typeof getProjectSourceImport>>, TError = ErrorType<unknown>>(id: string, options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getProjectSourceImport>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+export declare const getStartProjectSourceImportUrl: (id: string) => string;
+export declare const startProjectSourceImport: (id: string, projectSourceConfirmation: ProjectSourceConfirmation, options?: Parameters<typeof customFetch>[1]) => Promise<ProjectSourceImport>;
+export declare const getStartProjectSourceImportMutationKey: () => readonly ["startProjectSourceImport"];
+export declare const getStartProjectSourceImportMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof startProjectSourceImport>>, TError, StartProjectSourceImportMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof startProjectSourceImport>>, TError, StartProjectSourceImportMutationVariables, TContext>;
+export type StartProjectSourceImportMutationResult = NonNullable<Awaited<ReturnType<typeof startProjectSourceImport>>>;
+export type StartProjectSourceImportMutationBody = BodyType<ProjectSourceConfirmation>;
+export type StartProjectSourceImportMutationError = ErrorType<unknown>;
+export type StartProjectSourceImportMutationVariables = {
+    id: string;
+    data: BodyType<ProjectSourceConfirmation>;
+};
+export declare const useStartProjectSourceImport: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof startProjectSourceImport>>, TError, StartProjectSourceImportMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof startProjectSourceImport>>, TError, StartProjectSourceImportMutationVariables, TContext>;
+export declare const getCancelProjectSourceImportUrl: (id: string) => string;
+export declare const cancelProjectSourceImport: (id: string, options?: Parameters<typeof customFetch>[1]) => Promise<ProjectSourceImport>;
+export declare const getCancelProjectSourceImportMutationKey: () => readonly ["cancelProjectSourceImport"];
+export declare const getCancelProjectSourceImportMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof cancelProjectSourceImport>>, TError, CancelProjectSourceImportMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof cancelProjectSourceImport>>, TError, CancelProjectSourceImportMutationVariables, TContext>;
+export type CancelProjectSourceImportMutationResult = NonNullable<Awaited<ReturnType<typeof cancelProjectSourceImport>>>;
+export type CancelProjectSourceImportMutationError = ErrorType<unknown>;
+export type CancelProjectSourceImportMutationVariables = {
+    id: string;
+};
+export declare const useCancelProjectSourceImport: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof cancelProjectSourceImport>>, TError, CancelProjectSourceImportMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof cancelProjectSourceImport>>, TError, CancelProjectSourceImportMutationVariables, TContext>;
 export declare const getSharedGithubFilesUrl: (params: SharedGithubFilesParams) => string;
 export declare const sharedGithubFiles: (params: SharedGithubFilesParams, options?: Parameters<typeof customFetch>[1]) => Promise<void>;
 export declare const getSharedGithubFilesQueryKey: (params?: SharedGithubFilesParams) => readonly ["/api/shared-assessments/github/files", ...SharedGithubFilesParams[]];
@@ -324,10 +555,28 @@ export declare const useMapSharedGithubSource: <TError = ErrorType<unknown>, TCo
     mutation?: UseMutationOptions<Awaited<ReturnType<typeof mapSharedGithubSource>>, TError, MapSharedGithubSourceMutationVariables, TContext>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseMutationResult<Awaited<ReturnType<typeof mapSharedGithubSource>>, TError, MapSharedGithubSourceMutationVariables, TContext>;
-export declare const getReadSharedSourceUrl: (id: string, index: number) => string;
-export declare const readSharedSource: (id: string, index: number, options?: Parameters<typeof customFetch>[1]) => Promise<void>;
-export declare const getReadSharedSourceQueryKey: (id: string, index: number) => readonly [`/api/shared-assessments/entities/${string}/source/${number}`];
-export declare const getReadSharedSourceQueryOptions: <TData = Awaited<ReturnType<typeof readSharedSource>>, TError = ErrorType<unknown>>(id: string, index: number, options?: {
+export declare const getUploadSharedSourceUrl: (id: string) => string;
+export declare const uploadSharedSource: (id: string, sharedSourceUpload: SharedSourceUpload, options?: Parameters<typeof customFetch>[1]) => Promise<void>;
+export declare const getUploadSharedSourceMutationKey: () => readonly ["uploadSharedSource"];
+export declare const getUploadSharedSourceMutationOptions: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof uploadSharedSource>>, TError, UploadSharedSourceMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof uploadSharedSource>>, TError, UploadSharedSourceMutationVariables, TContext>;
+export type UploadSharedSourceMutationResult = NonNullable<Awaited<ReturnType<typeof uploadSharedSource>>>;
+export type UploadSharedSourceMutationBody = BodyType<SharedSourceUpload>;
+export type UploadSharedSourceMutationError = ErrorType<void>;
+export type UploadSharedSourceMutationVariables = {
+    id: string;
+    data: BodyType<SharedSourceUpload>;
+};
+export declare const useUploadSharedSource: <TError = ErrorType<void>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof uploadSharedSource>>, TError, UploadSharedSourceMutationVariables, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof uploadSharedSource>>, TError, UploadSharedSourceMutationVariables, TContext>;
+export declare const getReadSharedSourceUrl: (id: string, index: number, params?: ReadSharedSourceParams) => string;
+export declare const readSharedSource: (id: string, index: number, params?: ReadSharedSourceParams, options?: Parameters<typeof customFetch>[1]) => Promise<void>;
+export declare const getReadSharedSourceQueryKey: (id: string, index: number, params?: ReadSharedSourceParams) => readonly [`/api/shared-assessments/entities/${string}/source/${number}`, ...ReadSharedSourceParams[]];
+export declare const getReadSharedSourceQueryOptions: <TData = Awaited<ReturnType<typeof readSharedSource>>, TError = ErrorType<unknown>>(id: string, index: number, params?: ReadSharedSourceParams, options?: {
     query?: UseQueryOptions<Awaited<ReturnType<typeof readSharedSource>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof readSharedSource>>, TError, TData> & {
@@ -335,7 +584,7 @@ export declare const getReadSharedSourceQueryOptions: <TData = Awaited<ReturnTyp
 };
 export type ReadSharedSourceQueryResult = NonNullable<Awaited<ReturnType<typeof readSharedSource>>>;
 export type ReadSharedSourceQueryError = ErrorType<unknown>;
-export declare function useReadSharedSource<TData = Awaited<ReturnType<typeof readSharedSource>>, TError = ErrorType<unknown>>(id: string, index: number, options?: {
+export declare function useReadSharedSource<TData = Awaited<ReturnType<typeof readSharedSource>>, TError = ErrorType<unknown>>(id: string, index: number, params?: ReadSharedSourceParams, options?: {
     query?: UseQueryOptions<Awaited<ReturnType<typeof readSharedSource>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & {
@@ -531,10 +780,10 @@ export declare function useWordTemplateReference<TData = Awaited<ReturnType<type
 }): UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
 };
-export declare const getDownloadWordTemplateSampleUrl: () => string;
-export declare const downloadWordTemplateSample: (options?: Parameters<typeof customFetch>[1]) => Promise<Blob>;
-export declare const getDownloadWordTemplateSampleQueryKey: () => readonly ["/api/report-templates/sample"];
-export declare const getDownloadWordTemplateSampleQueryOptions: <TData = Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError = ErrorType<unknown>>(options?: {
+export declare const getDownloadWordTemplateSampleUrl: (params?: DownloadWordTemplateSampleParams) => string;
+export declare const downloadWordTemplateSample: (params?: DownloadWordTemplateSampleParams, options?: Parameters<typeof customFetch>[1]) => Promise<Blob>;
+export declare const getDownloadWordTemplateSampleQueryKey: (params?: DownloadWordTemplateSampleParams) => readonly ["/api/report-templates/sample", ...DownloadWordTemplateSampleParams[]];
+export declare const getDownloadWordTemplateSampleQueryOptions: <TData = Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError = ErrorType<unknown>>(params?: DownloadWordTemplateSampleParams, options?: {
     query?: UseQueryOptions<Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError, TData> & {
@@ -542,7 +791,7 @@ export declare const getDownloadWordTemplateSampleQueryOptions: <TData = Awaited
 };
 export type DownloadWordTemplateSampleQueryResult = NonNullable<Awaited<ReturnType<typeof downloadWordTemplateSample>>>;
 export type DownloadWordTemplateSampleQueryError = ErrorType<unknown>;
-export declare function useDownloadWordTemplateSample<TData = Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError = ErrorType<unknown>>(options?: {
+export declare function useDownloadWordTemplateSample<TData = Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError = ErrorType<unknown>>(params?: DownloadWordTemplateSampleParams, options?: {
     query?: UseQueryOptions<Awaited<ReturnType<typeof downloadWordTemplateSample>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & {

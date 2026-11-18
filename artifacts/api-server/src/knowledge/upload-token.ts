@@ -3,6 +3,8 @@ import { Router, raw } from "express";
 import { storageKey } from "./portable-storage";
 import { MAX_FILE_BYTES, saveSealed } from "./storage";
 import { uploadSignature } from "./upload-capability";
+import { withProjectDatabase } from "@workspace/db";
+import { authorizedProject } from "../projects/service";
 export { portableUploadUrl } from "./upload-capability";
 
 export const uploadRouter = Router();
@@ -24,7 +26,16 @@ uploadRouter.put("/:token", raw({ type: "application/octet-stream", limit: MAX_F
     if (bytes.byteLength < 1 || bytes.byteLength > MAX_FILE_BYTES) throw new Error();
     // Shared create-only writer also validates the Buffer and size before
     // contacting GCS, Replit App Storage, or a portable backend.
-    await saveSealed(value.path, bytes);
+    if (value.projectId !== undefined || value.userId !== undefined) {
+      if (typeof value.projectId !== "string" || !/^[a-f0-9-]{36}$/.test(value.projectId)
+        || typeof value.userId !== "string" || value.userId.length > 100) throw new Error();
+      const scope = await authorizedProject(value.userId, value.projectId);
+      await withProjectDatabase(scope, () => saveSealed(value.path, bytes));
+    } else {
+      // Pre-migration capabilities expire in five minutes and cannot target new namespaces.
+      if (/\/projects\//.test(value.path)) throw new Error();
+      await saveSealed(value.path, bytes);
+    }
     res.sendStatus(204);
   } catch { res.status(400).json({ message: "Upload expired, already used, or unavailable. Start a new upload." }); }
 });
